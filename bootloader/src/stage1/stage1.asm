@@ -1,5 +1,7 @@
+;----------------------------------------------------------------
 ; Corrosium OS
 ; Bootloader in real mode
+;----------------------------------------------------------------
 
 bits 16
 org 0x7c00
@@ -7,30 +9,52 @@ org 0x7c00
     nop
     times 33 db 0                   
 
-stage1_entrypoint:                  ; Some BIOS may load us at 0x0000:0x7C00 while others at 0x07C0:0x0000.
-    cli                             ; Disable interruptions
-    jmp 0x0000:.setup_segments      ; We do a far jump to accommodate for this issue (CS is reloaded to 0x0000).
-    .setup_segments:                ; Next, we set all segment registers to zero.
+stage1_entrypoint:                  ; Some BIOS may load us at 0x0000:0x7C00 while others at 0x07C0:0x0000
+    cli                             ; Clear interruptions
+    jmp 0x0000:.setup_segments      ; Do a far jump to accommodate for this issue (CS is reloaded to 0x0000)
+    .setup_segments:                ; Set all segment registers to zero
         xor ax, ax
         mov ss, ax
         mov ds, ax
         mov es, ax
         mov fs, ax
         mov gs, ax
-        mov sp, stage1_entrypoint   ; We set up a temporary stack so that it starts growing below stage1_entrypoint (i.e. the stack base will be located at 0:0x7c00).
-        cld                         ; Clear the direction flag (i.e. go forward in memory when using instructions like lodsb).
+        mov sp, stage1_entrypoint   ; Set up a stack that it starts growing below stage1_entrypoint (0x0000:0x7c00)
     sti                             ; Enable interruptions
 
-    mov si, stage1_message
+;----------------------------------------------------------------
+stage1_test_disk_service:
+    mov [stage1_disk_id], dl
+    mov ah, 0x41
+    mov bx, 0x55aa
+    int 0x13
+    jc stage1_disk_ext_not_supported
+    cmp bx, 0xaa55
+    jne stage1_disk_ext_not_supported
+
+;----------------------------------------------------------------
+; TODO: load stage 2 into the RAM
+
+;----------------------------------------------------------------
+    mov si, stage1_success_message
     call BIOS_print
 
-.loop:
+; TODO: should be jump to stage 2
+;----------------------------------------------------------------
+
+stage1_halt:
     hlt
-    jmp .loop
+    jmp stage1_halt
+
+stage1_disk_ext_not_supported:
+    mov si, stage1_disk_ext_error_message
+    jmp stage1_halt
 
 %include "src/stage1/bios.asm"
 
-stage1_message  db 'Real mode stage completed', 13, 10, 0
+stage1_disk_id db 0x0
+stage1_success_message  db 'Real mode stage succeeded', 13, 10, 0
+stage1_disk_ext_error_message  db 'Disk extension is not supported', 13, 10, 0
 
 times 510-($-$$) db 0               ; Padding
 dw 0xAA55                           ; Boot signature
