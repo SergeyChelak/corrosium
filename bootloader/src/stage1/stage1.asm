@@ -1,12 +1,12 @@
 ; Corrosium OS
 ; Bootloader in real mode
 
-[bits 16]
-[org 0x7c00]
+bits 16
+org 0x7c00
 
-times 90 db 0                       ; skip BIOS parameter block
+times 90 db 0                       ; Skip BIOS parameter block
 
-stage1_entrypoint:                  ; Main entry point where BIOS leaves us. Some BIOS may load us at 0x0000:0x7C00 while others at 0x07C0:0x0000.
+stage1_entrypoint:                  ; Some BIOS may load us at 0x0000:0x7C00 while others at 0x07C0:0x0000.
     cli                             ; Disable interruptions
     jmp 0x0000:.setup_segments      ; We do a far jump to accommodate for this issue (CS is reloaded to 0x0000).
     .setup_segments:                ; Next, we set all segment registers to zero.
@@ -21,16 +21,15 @@ stage1_entrypoint:                  ; Main entry point where BIOS leaves us. Som
     sti                             ; Enable interruptions
 
     mov si, stage1_message
-    call BIOS_println
+    call BIOS_print
 
 .loop:
     hlt
     jmp .loop
 
-%include "src/stage1/bios_print.asm"
+%include "src/stage1/bios.asm"
 
-stage1_message dw 13
-db 'Real mode: OK'
+stage1_message  db 'Real mode stage completed', 13, 10, 0
 
 times 510-($-$$) db 0               ; Padding
 dw 0xAA55                           ; Boot signature
