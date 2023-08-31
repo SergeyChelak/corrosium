@@ -3,8 +3,9 @@
 
 bits 16
 org 0x7c00
-
-times 90 db 0                       ; Skip BIOS parameter block
+    jmp short stage1_entrypoint     ; Skip BIOS parameter block
+    nop
+    times 33 db 0                   
 
 stage1_entrypoint:                  ; Some BIOS may load us at 0x0000:0x7C00 while others at 0x07C0:0x0000.
     cli                             ; Disable interruptions
