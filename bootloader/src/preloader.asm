@@ -1,6 +1,6 @@
 ;*********************************************************************************
-; Corrosium OS
-; Bootloader in real mode
+; Corrosium OS Bootloader
+; Loads rest of bootloader and kernel into the RAM
 ;*********************************************************************************
 
 bits 16
@@ -43,7 +43,7 @@ stage1_load_loader:
     hlt
     jmp .halt
 
-%include "src/stage1/bios.asm"
+%include "src/bios.asm"
 
 stage1_success_message  db 'Real mode stage succeeded', 13, 10, 0
 

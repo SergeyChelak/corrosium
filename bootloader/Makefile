@@ -4,11 +4,11 @@ BUILD = build
 
 .PHONY: run, clean
 
-boot.bin:
-	${ASM} -f bin ${SRC}/boot.asm -o ${BUILD}/$@
+preloader.bin:
+	${ASM} -f bin ${SRC}/preloader.asm -o ${BUILD}/$@
 
 clean:
 	rm ${BUILD}/*
 
-run: boot.bin
+run: preloader.bin
 	qemu-system-x86_64 -drive format=raw,file=$(BUILD)/$^
