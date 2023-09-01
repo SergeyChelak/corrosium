@@ -1,7 +1,7 @@
-;----------------------------------------------------------------
+;*********************************************************************************
 ; Corrosium OS
 ; Bootloader in real mode
-;----------------------------------------------------------------
+;*********************************************************************************
 
 bits 16
 org 0x7c00
@@ -23,17 +23,14 @@ stage1_entrypoint:                  ; Some BIOS may load us at 0x0000:0x7C00 whi
     sti                             ; Enable interruptions
 
 ;----------------------------------------------------------------
-stage1_test_disk_service:
-    mov [stage1_disk_id], dl
-    mov ah, 0x41
-    mov bx, 0x55aa
-    int 0x13
-    jc stage1_disk_ext_not_supported
-    cmp bx, 0xaa55
-    jne stage1_disk_ext_not_supported
+    call BIOS_test_disk_service
 
 ;----------------------------------------------------------------
 ; TODO: load stage 2 into the RAM
+stage1_load_loader:
+    mov dl, [stage1_disk_id]
+    mov ax, 0x42
+    int 0x13
 
 ;----------------------------------------------------------------
     mov si, stage1_success_message
@@ -42,19 +39,13 @@ stage1_test_disk_service:
 ; TODO: should be jump to stage 2
 ;----------------------------------------------------------------
 
-stage1_halt:
+.halt:
     hlt
-    jmp stage1_halt
-
-stage1_disk_ext_not_supported:
-    mov si, stage1_disk_ext_error_message
-    jmp stage1_halt
+    jmp .halt
 
 %include "src/stage1/bios.asm"
 
-stage1_disk_id db 0x0
 stage1_success_message  db 'Real mode stage succeeded', 13, 10, 0
-stage1_disk_ext_error_message  db 'Disk extension is not supported', 13, 10, 0
 
 times 510-($-$$) db 0               ; Padding
 dw 0xAA55                           ; Boot signature
