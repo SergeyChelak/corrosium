@@ -1,34 +1,9 @@
 ;*********************************************************************************
 ; Corrosium OS
-; BIOS utils
+; BIOS disk utils
 ;*********************************************************************************
 
 bits 16
-
-BIOS_print:
-;*********************************************************************************
-; Prints a zero-terminated string via BIOS function
-;---------------------------------------------------------------------------------
-; si: pointer to string
-;*********************************************************************************
-    push ax
-    push bx
-    push si
-    mov bx, 0
-    .string_loop:
-        lodsb
-        cmp al, 0
-        je .string_done
-        mov ah, 0eh
-        int 10h
-    jmp .string_loop
-
-    .string_done:
-    pop si
-    pop bx
-    pop ax
-    ret
-
 ;*********************************************************************************
 ; Stores current drive identifier and checks if disk service is supported
 ; If service isn't supported, prints corresponding message and halts the CPU

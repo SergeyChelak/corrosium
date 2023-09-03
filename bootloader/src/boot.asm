@@ -58,7 +58,8 @@ stage1_read_loader_error:
     call BIOS_print
     jmp stage1_halt
 
-%include "src/bios.asm"
+%include "src/print.asm"
+%include "src/disk.asm"
 
 stage1_tmp_message  db 'Processing to stage 2', 13, 10, 0
 stage1_read_loader_error_message  db 'Failed to read a stage 2 from the disk', 13, 10, 0
