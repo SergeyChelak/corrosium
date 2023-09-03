@@ -29,43 +29,19 @@ stage1_entrypoint:                  ; Some BIOS may load us at 0x0000:0x7C00 whi
 
 ;----------------------------------------------------------------
     call BIOS_test_disk_service
-
-;----------------------------------------------------------------
-; TODO: load the rest of the loader
 stage1_load_loader:
-    mov si, disk_read_packet
-    mov word[si], 16            ; size, 16 bytes
-    mov word[si+2], 1           ; number sectors to read, 5 sectors
-    mov word[si+4], 0x7e00      ; offset
-    mov word[si+6], 0           ; segment
-    mov word[si+8], 1           ; address low
-    mov word[si+10], 0          ; address high
-    mov dl, [stage1_disk_id]
-    mov ah, 0x42
-    int 0x13
-    jc stage1_read_loader_error
+    mov ax, 1                   ; ax: start sector
+    mov cx, 1                   ; cx: number of sectors (512 bytes) to read
+    mov bx, stage2_entrypoint   ; bx: offset of buffer
+    xor dx, dx                  ; dx: segment of buffer
+    call BIOS_read_disk
 
-    mov dl, stage1_disk_id
+    mov dl, disk_id
     jmp stage2_entrypoint       ; stage2_entrypoint should be 0x7e00
 ;----------------------------------------------------------------
 
-stage1_halt:
-    hlt
-    jmp stage1_halt
-
-stage1_read_loader_error:
-    mov si, stage1_read_loader_error_message
-    call BIOS_print
-    jmp stage1_halt
-
 %include "src/print.asm"
 %include "src/disk.asm"
-
-stage1_tmp_message  db 'Processing to stage 2', 13, 10, 0
-stage1_read_loader_error_message  db 'Failed to read a stage 2 from the disk', 13, 10, 0
-
-; -- Disk read struct
-disk_read_packet: times 16 db 0
 
 times 510-($-$$) db 0               ; Padding
 dw 0xAA55                           ; Boot signature
