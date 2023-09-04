@@ -1,17 +1,20 @@
 ASM = nasm
-SRC = src
-BUILD = build
+SRC_DIR = src
+BUILD_DIR = build
 
-.PHONY: run, clean
+.PHONY: run, clean, always
 
-boot.bin:
-	${ASM} -f bin ${SRC}/boot.asm -o ${BUILD}/$@
+$(BUILD_DIR)/boot.bin: always
+	${ASM} -f bin ${SRC_DIR}/boot.asm -o $@
 
 clean:
-	rm ${BUILD}/*
+	rm -rf ${BUILD_DIR}
 
-run: boot.bin
-	qemu-system-x86_64 -drive format=raw,file=$(BUILD)/$^
+always:
+	mkdir -p $(BUILD_DIR)
+
+run: $(BUILD_DIR)/boot.bin
+	qemu-system-x86_64 -drive format=raw,file=$^
 
 	# dd if=/dev/zero bs=512 count=1  >> $(BUILD)/boot.bin
 	# qemu-system-x86_64 -drive format=raw,file=$(BUILD)/boot.bin
