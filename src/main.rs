@@ -1,5 +1,5 @@
-// Corrosium OS
-// Kernel
+//! Corrosium OS
+//! Kernel
 
 #![no_std]
 #![no_main]

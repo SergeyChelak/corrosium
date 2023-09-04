@@ -3,5 +3,5 @@
 version = 3
 
 [[package]]
-name = "corrosium_kernel"
+name = "corrosium"
 version = "0.1.0"
