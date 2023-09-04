@@ -27,8 +27,8 @@ stage1_entrypoint:                  ; Some BIOS may load us at 0x0000:0x7C00 whi
         mov sp, stage1_entrypoint   ; Set up a stack that it starts growing below stage1_entrypoint (0x0000:0x7c00)
     sti                             ; Enable interruptions
 
-; load the rest of the loader...
     call BIOS_test_disk_service
+; load the rest of the loader...
     mov ax, 1                                       ; ax: start sector
     mov cx, (stage2_end - stage2_entrypoint) / 512  ; cx: number of sectors (512 bytes) to read
     mov bx, stage2_entrypoint   ; bx: offset of buffer
@@ -51,6 +51,7 @@ dw 0xAA55                           ; Boot signature
 ;   Enable paging
 ;   Setup Programmable Interrupt Controller
 ;   Enter long mode
+;   Load kernel and jump to it
 ;----------------------------------------------------------------
 stage2_entrypoint:
     mov si, stage1_success_message
