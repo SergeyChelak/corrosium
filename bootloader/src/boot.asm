@@ -56,10 +56,26 @@ dw 0xAA55                           ; Boot signature
 stage2_entrypoint:
     mov si, stage1_success_message
     call BIOS_print
-    .hlt:
-        hlt
-        jmp .hlt
 
-    stage1_success_message  db 'Stage 1 succeeded', 13, 10, 0
+    call check_long_mode_support
+    test eax, eax
+    jz long_mode_not_supported
+
+    mov si, not_implemented_message
+    call BIOS_print
+    jmp halt
+
+    long_mode_not_supported:
+        mov si, long_mode_unsupported_message
+        call BIOS_print
+    halt:
+        hlt
+        jmp halt
+
+%include "src/long_mode.asm"
+
+    stage1_success_message          db 'Stage 1 succeeded', 13, 10, 0
+    long_mode_unsupported_message   db 'Long mode is not supported', 13, 10, 0
+    not_implemented_message         db 'Not implemented', 13, 10, 0
     align 512, db 0
 stage2_end:
