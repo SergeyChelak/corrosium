@@ -7,9 +7,9 @@ bits 16
 
 msg_long_mode_unsupported   db 'Long mode is not supported', 13, 10, 0
 
-;********************************************************************;
-; Check if Long mode is supported                                    ;
-;********************************************************************;
+;*********************************************************************************
+; Check if Long mode is supported
+;*********************************************************************************
 Check_long_mode_support:
     mov eax, 0x80000000 ; Test if extended processor info in available.  
     cpuid                
