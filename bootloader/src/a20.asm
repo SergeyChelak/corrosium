@@ -1,39 +1,49 @@
 ;*********************************************************************************
 ; Corrosium OS
+; --------------------------------------------------------------------------------
 ; Functions to enable & check if enabled A20 line
+; https://wiki.osdev.org/A20_Line
 ;*********************************************************************************
 
 bits 16
 
-msg_a20_disabled    db 'Line A20 is disabled', 13, 10, 0
-msg_a20_enabled     db 'Line A20 is enabled', 13, 10, 0
+msg_a20_enabled                 db 'Line A20 is enabled', 13, 10, 0
+msg_failed_to_enable_a20        db 'Failed to enable line A20', 13, 10, 0
 
+;*********************************************************************************
+; Makes attempt to enable A20 line (in real mode)
+; --------------------------------------------------------------------------------
+; This OS isn't expected to be run on real hardware but with QEMU
+; It means that A20 line is enabled and fast a20 get is added just it case
+;*********************************************************************************
 Enable_a20:
-    call Check_A20_status
-    ret
-
-;********************************************************************;
-; Check the status of the A20 line                                   ;
-;********************************************************************;
-Check_A20_status:
-    call Real_mode_check_A20
+    call Check_a20
     test ax, ax
-    jnz .a20_enabled
-        mov si, msg_a20_disabled
-        call Bios_print
-        ret
-   .a20_enabled:
+    jnz .end
+
+    call Fast_a20
+    
+    call Check_a20
+    test ax, ax
+    jnz .end
+    
+    mov si, msg_failed_to_enable_a20
+    call Bios_print
+    .hlt: hlt
+    
+    jmp .hlt
+    .end:
         mov si, msg_a20_enabled
         call Bios_print
         ret
 
-;**************************************************************************;
-; Check the status of the A20 line (in real mode)                          ;
-;--------------------------------------------------------------------------;
-; Returns: ax = 0 if the a20 line is disabled (memory wraps around)        ;
-;          ax = 1 if the a20 line is enabled (memory does not wrap around) ;
-;**************************************************************************;
-Real_mode_check_A20:
+;*********************************************************************************
+; Check the status of the A20 line (in real mode)
+; --------------------------------------------------------------------------------
+; Returns: ax = 0 if the a20 line is disabled
+;          ax = 1 if the a20 line is enabled
+;*********************************************************************************
+Check_a20:
     pushf
     push ds
     push es
@@ -77,3 +87,15 @@ Real_mode_check_A20:
     popf
     sti ; Enable interrupts.
     ret
+
+;*********************************************************************************
+; Enable A20 Line via IO port 92h (Fast A20 method)                   
+;*********************************************************************************
+Fast_a20:
+    in al, 0x92
+    test al, 2
+    jnz .end
+    or al, 2
+    and al, 0xFE
+    out 0x92, al
+    .end: ret
