@@ -10,7 +10,7 @@ long_mode_unsupported_message   db 'Long mode is not supported', 13, 10, 0
 ;********************************************************************;
 ; Check if Long mode is supported                                    ;
 ;********************************************************************;
-check_long_mode_support:
+Check_long_mode_support:
     mov eax, 0x80000000 ; Test if extended processor info in available.  
     cpuid                
     cmp eax, 0x80000001 
@@ -25,6 +25,6 @@ check_long_mode_support:
 
    .not_supported:
         mov si, long_mode_unsupported_message
-        call BIOS_print
+        call Bios_print
         .hlt: hlt
         jmp .hlt

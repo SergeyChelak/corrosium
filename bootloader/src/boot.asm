@@ -27,13 +27,13 @@ stage1_entrypoint:                  ; Some BIOS may load us at 0x0000:0x7C00 whi
         mov sp, stage1_entrypoint   ; Set up a stack that it starts growing below stage1_entrypoint (0x0000:0x7c00)
     sti                             ; Enable interruptions
 
-    call BIOS_test_disk_service
+    call Bios_test_disk_service
 ; load the rest of the loader...
     mov ax, 1                                       ; ax: start sector
     mov cx, (stage2_end - stage2_entrypoint) / 512  ; cx: number of sectors (512 bytes) to read
     mov bx, stage2_entrypoint   ; bx: offset of buffer
     xor dx, dx                  ; dx: segment of buffer
-    call BIOS_read_disk
+    call Bios_read_disk
 
     mov dl, disk_id
     jmp stage2_entrypoint       ; stage2_entrypoint should be 0x7e00
@@ -55,14 +55,14 @@ dw 0xAA55                           ; Boot signature
 ;----------------------------------------------------------------
 stage2_entrypoint:
     mov si, stage1_success_message
-    call BIOS_print
+    call Bios_print
 
-    call check_long_mode_support
+    call Check_long_mode_support
 
-    call enable_a20
+    call Enable_a20
 
     mov si, not_implemented_message
-    call BIOS_print
+    call Bios_print
 
     .hlt: hlt
     jmp .hlt
@@ -71,6 +71,6 @@ stage2_entrypoint:
 %include "src/a20.asm"
 
     stage1_success_message          db 'Stage 1 succeeded', 13, 10, 0
-    not_implemented_message         db 'Not implemented', 13, 10, 0
+    not_implemented_message         db 'To be done...', 13, 10, 0
     align 512, db 0
 stage2_end:

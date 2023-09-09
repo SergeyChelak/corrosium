@@ -30,7 +30,7 @@ DAP:
 .LBA_lower:   dd 0x0  ; lower 32 bits of 48-bit starting LBA
 .LBA_upper:   dd 0x0  ; upper 32 bits of 48-bit starting LBA
 
-BIOS_read_disk:
+Bios_read_disk:
 ;**********************************************************;
 ; Load disk sectors to memory (int 13h, function code 42h) ;
 ;----------------------------------------------------------;
@@ -44,7 +44,7 @@ BIOS_read_disk:
         jbe .good_size
          pusha
         mov cx, 127
-        call BIOS_read_disk
+        call Bios_read_disk
         popa
         add eax, 127
         add dx, 127 * 512 / 16
@@ -64,7 +64,7 @@ BIOS_read_disk:
         ret
     .print_error:
         mov si, disk_read_error_message
-        call BIOS_print
+        call Bios_print
     .halt: hlt
      jmp .halt
 
@@ -73,7 +73,7 @@ BIOS_read_disk:
 ; Stores current drive identifier and checks if disk service is supported
 ; If service isn't supported, prints corresponding message and halts the CPU
 ;*********************************************************************************
-BIOS_test_disk_service:
+Bios_test_disk_service:
     mov [disk_id], dl
     mov ah, 0x41
     mov bx, 0x55aa

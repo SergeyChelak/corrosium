@@ -5,5 +5,5 @@
 
 bits 16
 
-enable_a20:
+Enable_a20:
     ret
