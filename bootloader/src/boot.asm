@@ -54,14 +54,14 @@ dw 0xAA55                           ; Boot signature
 ;   Load kernel and jump to it
 ;----------------------------------------------------------------
 stage2_entrypoint:
-    mov si, stage1_success_message
+    mov si, msg_stage1_success
     call Bios_print
 
     call Check_long_mode_support
 
     call Enable_a20
 
-    mov si, not_implemented_message
+    mov si, msg_not_implemented
     call Bios_print
 
     .hlt: hlt
@@ -70,7 +70,7 @@ stage2_entrypoint:
 %include "src/long_mode.asm"
 %include "src/a20.asm"
 
-    stage1_success_message          db 'Stage 1 succeeded', 13, 10, 0
-    not_implemented_message         db 'To be done...', 13, 10, 0
+    msg_stage1_success          db 'Stage 1 succeeded', 13, 10, 0
+    msg_not_implemented         db 'To be done...', 13, 10, 0
     align 512, db 0
 stage2_end:

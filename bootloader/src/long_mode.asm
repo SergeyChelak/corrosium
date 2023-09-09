@@ -5,7 +5,7 @@
 
 bits 16
 
-long_mode_unsupported_message   db 'Long mode is not supported', 13, 10, 0
+msg_long_mode_unsupported   db 'Long mode is not supported', 13, 10, 0
 
 ;********************************************************************;
 ; Check if Long mode is supported                                    ;
@@ -24,7 +24,7 @@ Check_long_mode_support:
     ret
 
    .not_supported:
-        mov si, long_mode_unsupported_message
+        mov si, msg_long_mode_unsupported
         call Bios_print
         .hlt: hlt
         jmp .hlt
