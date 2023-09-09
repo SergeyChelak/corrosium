@@ -5,10 +5,10 @@
 
 bits 16
 
+long_mode_unsupported_message   db 'Long mode is not supported', 13, 10, 0
+
 ;********************************************************************;
 ; Check if Long mode is supported                                    ;
-;--------------------------------------------------------------------;
-; Returns: eax = 0 if Long mode is NOT supported, else non-zero.     ;
 ;********************************************************************;
 check_long_mode_support:
     mov eax, 0x80000000 ; Test if extended processor info in available.  
@@ -24,5 +24,7 @@ check_long_mode_support:
     ret
 
    .not_supported:
-      xor eax, eax
-      ret
+        mov si, long_mode_unsupported_message
+        call BIOS_print
+        .hlt: hlt
+        jmp .hlt

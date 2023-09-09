@@ -58,24 +58,19 @@ stage2_entrypoint:
     call BIOS_print
 
     call check_long_mode_support
-    test eax, eax
-    jz long_mode_not_supported
+
+    call enable_a20
 
     mov si, not_implemented_message
     call BIOS_print
-    jmp halt
 
-    long_mode_not_supported:
-        mov si, long_mode_unsupported_message
-        call BIOS_print
-    halt:
-        hlt
-        jmp halt
+    .hlt: hlt
+    jmp .hlt
 
 %include "src/long_mode.asm"
+%include "src/a20.asm"
 
     stage1_success_message          db 'Stage 1 succeeded', 13, 10, 0
-    long_mode_unsupported_message   db 'Long mode is not supported', 13, 10, 0
     not_implemented_message         db 'Not implemented', 13, 10, 0
     align 512, db 0
 stage2_end:

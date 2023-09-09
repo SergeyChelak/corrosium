@@ -5,9 +5,9 @@
 
 bits 16
 
-disk_id db 0x0
-disk_service_unsupported_message  db 'Disk service is not supported', 13, 10, 0
-disk_read_error_message  db 'Failed to read from the disk', 13, 10, 0
+disk_id                             db 0x0
+disk_service_unsupported_message    db 'Disk service is not supported', 13, 10, 0
+disk_read_error_message             db 'Failed to read from the disk', 13, 10, 0
 
 DAP:
 ;*******************************************************************************;
@@ -78,11 +78,11 @@ BIOS_test_disk_service:
     mov ah, 0x41
     mov bx, 0x55aa
     int 0x13
-    jc .BIOS_disk_service_not_supported
+    jc .not_supported
     cmp bx, 0xaa55
-    jne .BIOS_disk_service_not_supported
+    jne .not_supported
     ret
-    .BIOS_disk_service_not_supported:
+    .not_supported:
         mov si, disk_service_unsupported_message
         .halt: hlt
         jmp .halt
