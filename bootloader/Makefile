@@ -15,6 +15,3 @@ always:
 
 run: $(BUILD_DIR)/boot.bin
 	qemu-system-x86_64 -drive format=raw,file=$^
-
-	# dd if=/dev/zero bs=512 count=1  >> $(BUILD)/boot.bin
-	# qemu-system-x86_64 -drive format=raw,file=$(BUILD)/boot.bin
