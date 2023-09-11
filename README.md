@@ -1,5 +1,7 @@
 # Corrosium OS
 An operating system written in Rust
+
+## State
 Early development stage
 
 ## Prerequisites
