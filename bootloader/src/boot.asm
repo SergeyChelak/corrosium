@@ -16,7 +16,7 @@ org 0x7c00
     times 33 db 0                   
 
 stage1_entrypoint:                  ; Some BIOS may load us at 0x0000:0x7C00 while others at 0x07C0:0x0000
-cli                             ; Clear interruptions
+    cli                             ; Clear interruptions
     jmp 0x0000:.setup_segments      ; Do a far jump to accommodate for this issue (CS is reloaded to 0x0000)
     .setup_segments:                ; Set all segment registers to zero
         xor ax, ax
@@ -27,6 +27,7 @@ cli                             ; Clear interruptions
         mov gs, ax
         mov sp, stage1_entrypoint   ; Set up a stack that it starts growing below stage1_entrypoint (0x0000:0x7c00)
     sti                             ; Enable interruptions
+    cld
 
    call Bios_test_disk_service
 ; load the rest of the loader...
