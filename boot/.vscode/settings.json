@@ -1,0 +1,10 @@
+{
+    "rust-analyzer.check.allTargets": false,
+    "rust-analyzer.check.extraArgs": [
+        "--target",
+        "x86_32"
+    ],
+    "rust-analyzer.checkOnSave.extraArgs": [
+        "--bins"
+    ],
+}

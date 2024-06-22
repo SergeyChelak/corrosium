@@ -3,3 +3,9 @@
 resolver = "2"
 
 members = ["stage1", "stage2"]
+
+[profile.dev]
+panic = "abort"
+
+[profile.release]
+panic = "abort"
