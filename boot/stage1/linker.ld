@@ -35,4 +35,6 @@ SECTIONS {
     {
         SHORT(0xaa55)
     }
+
+    _next_stage = .;
 }

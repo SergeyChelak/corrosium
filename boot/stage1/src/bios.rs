@@ -4,6 +4,7 @@ pub fn print(message: &str) {
     unsafe {
         asm!(
             "mov si, {0:x}",
+            "mov bx, 0",
             "2:",
             "lodsb",
             "cmp al, 0",
