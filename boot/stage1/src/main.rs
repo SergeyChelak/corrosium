@@ -24,7 +24,6 @@ pub extern "C" fn _stage1() -> ! {
         number
     };
     let next_stage: *const u16 = unsafe { &_next_stage };
-
     let target = next_stage as u16;
     let error_code = bios::read_sectors(disk_id, 2, MAX_NEXT_STAGE_SECTORS, target);
     if error_code != 0x0 {
@@ -33,6 +32,7 @@ pub extern "C" fn _stage1() -> ! {
     }
     print("2nd stage loaded\r\n\0");
     x86::fast_a20();
+    x86::GDT.load();
     x86::jump(next_stage);
     halt()
 }
