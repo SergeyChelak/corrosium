@@ -13,3 +13,12 @@ pub fn jump(address: *const u16) {
         asm!("jmp {0:x}", in(reg) address as u16);
     }
 }
+
+pub fn fast_a20() {
+    unsafe { asm!("in al, 0x92", "or al, 2", "out 0x92, al",) }
+}
+
+// #[repr(C, packed)]
+// struct GlobalDescriptorTable {
+//     //
+// }

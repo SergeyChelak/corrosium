@@ -32,6 +32,7 @@ pub extern "C" fn _stage1() -> ! {
         halt();
     }
     print("2nd stage loaded\r\n\0");
+    x86::fast_a20();
     x86::jump(next_stage);
     halt()
 }
