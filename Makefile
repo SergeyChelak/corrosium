@@ -23,6 +23,8 @@ ${BUILD_DIR}/kernel.bin:
 	echo hello > $@
 
 prepare:
+	cp ./cfg/* ./boot/
+	cp ./cfg/x86_32.json ./kernel/
 	mkdir -p ${BUILD_DIR}
 
 run: ${DISK_IMAGE}
