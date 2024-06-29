@@ -1,0 +1,36 @@
+ENTRY(kernel_main)
+
+SECTIONS {
+    . = 1M;
+
+    .kernel_start : {
+        *(.kernel_start)
+    }
+
+    /* code section */
+    .text : {
+        *(.text .text.*)
+    }
+
+    /* static variables section */
+    .bss : {
+        *(.bss .bss.*)
+    }
+
+    /* read-only data, like consts */
+    .rodata : {
+        *(.rodata .rodata.*)
+    }
+    
+    .data : {
+        *(.data .data.*)
+    }
+
+    /* contains info about exceptions */
+    .eh_frame : {
+        *(.eh_frame .eh_frame.*)
+    }
+    .eh_frame_hdr : {
+        *(.eh_frame_hdr .eh_frame_hdr.*)
+    }
+}
