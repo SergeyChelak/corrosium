@@ -2,7 +2,7 @@ BUILD_DIR = build
 BUILD_MODE = release
 QEMU = qemu-system-x86_64
 
-.PHONY: run setup always erase
+.PHONY: run setup always clean
 
 ${BUILD_DIR}/bootloader.bin: ${BUILD_DIR}/stage1.bin ${BUILD_DIR}/stage2.bin
 	dd if=/dev/zero of=$@ count=64
