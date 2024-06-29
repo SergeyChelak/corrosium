@@ -1,10 +1,16 @@
 #![no_std]
 #![no_main]
 
+mod gdt;
+mod text_buffer;
+
 #[no_mangle]
 #[link_section = ".start"]
 pub extern "C" fn _stage2() -> ! {
-    // Bootloader stage #2
+    text_buffer::clear();
+    let mut writer = text_buffer::Writer::new();
+    writer.write_string("Stage 2\n");
+    gdt::load_flat_mem_gdt();
     loop {}
 }
 

@@ -14,8 +14,8 @@ ${BUILD_DIR}/stage1.bin: setup
 	objcopy -I elf32-i386 -O binary target/x86_16/${BUILD_MODE}/stage1 $@
 
 ${BUILD_DIR}/stage2.bin: setup
-	cargo build --${BUILD_MODE} --target=x86_32.json --package=stage2
-	objcopy -I elf32-i386 -O binary target/x86_32/${BUILD_MODE}/stage2 $@
+	cargo build --${BUILD_MODE} --target=x86_16.json --package=stage2
+	objcopy -I elf32-i386 -O binary target/x86_16/${BUILD_MODE}/stage2 $@
 
 setup: always
 	mkdir -p ${BUILD_DIR}
@@ -23,5 +23,6 @@ setup: always
 run: ${BUILD_DIR}/bootloader.bin
 	${QEMU} -drive format=raw,file=$^
 
-erase:
+clean:
+	cargo clean
 	rm -fr ${BUILD_DIR}

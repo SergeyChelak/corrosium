@@ -2,7 +2,7 @@ ENTRY(_stage2)
 
 SECTIONS {
     /* second sector */
-    . = 0x7c00 + 512;
+    . = 0x7e00;
 
     .start : {
         *(.start)

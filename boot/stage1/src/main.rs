@@ -32,8 +32,8 @@ pub extern "C" fn _stage1() -> ! {
     }
     print("2nd stage loaded\r\n\0");
     x86::fast_a20();
-    x86::GDT.load();
-    x86::jump(next_stage);
+    print("Ok\r\n\0");
+    x86::jump(target);
     halt()
 }
 
@@ -42,6 +42,7 @@ fn panic(_info: &core::panic::PanicInfo) -> ! {
     halt()
 }
 
+#[no_mangle]
 fn halt() -> ! {
     print("* Halted\r\n\0");
     x86::cli();
