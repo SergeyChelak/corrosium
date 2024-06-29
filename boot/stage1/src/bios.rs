@@ -18,9 +18,8 @@ pub fn print(message: &str) {
     }
 }
 
-pub fn read_sectors(disk: u8, from: u8, sectors: u8, target: u16) -> u8 {
+pub fn read_sectors(disk: u8, from: u8, sectors: u8, target: u16) {
     unsafe {
-        let mut error_code: u8;
         asm!(
             "mov ah, 0x2",              // read sector command
             "mov ch, 0x0",              // cylinder
@@ -31,8 +30,6 @@ pub fn read_sectors(disk: u8, from: u8, sectors: u8, target: u16) -> u8 {
             in("al") sectors,           // number of sectors to read
             in("cl") from,              // start from nth sector
             in("dl") disk,
-            out("ah") error_code,
-        );
-        error_code
+        )
     }
 }

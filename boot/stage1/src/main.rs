@@ -2,6 +2,7 @@
 #![no_main]
 
 mod bios;
+mod x86;
 
 use core::{
     arch::{asm, global_asm},
@@ -30,13 +31,12 @@ pub extern "C" fn _stage1() -> ! {
         number
     };
     let stage2 = next_stage();
-    let error_code = bios::read_sectors(disk_id, 2, MAX_NEXT_STAGE_SECTORS, stage2);
-    if error_code != 0x0 {
-        print("! Disk read error\n\r\0");
-        halt();
-    }
+    bios::read_sectors(disk_id, 2, MAX_NEXT_STAGE_SECTORS, stage2);
     print("2nd stage loaded\r\n\0");
-    jump(stage2);
+    x86::fast_a20();
+    x86::load_flat_mem_gdt();
+    x86::protected_mode();
+    x86::jump(stage2);
     halt()
 }
 
@@ -48,16 +48,5 @@ fn panic(_info: &core::panic::PanicInfo) -> ! {
 #[no_mangle]
 fn halt() -> ! {
     print("* Halted\r\n\0");
-    unsafe {
-        asm!("cli");
-        loop {
-            asm!("hlt")
-        }
-    }
-}
-
-fn jump(address: u16) {
-    unsafe {
-        asm!("jmp {0:x}", in(reg) address);
-    }
+    x86::halt();
 }
