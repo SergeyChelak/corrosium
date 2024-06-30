@@ -8,30 +8,19 @@ SECTIONS {
         *(.start)
     }
 
-    /* code section */
-    .text : {
+    .text : ALIGN(4096) {
         *(.text .text.*)
     }
 
-    /* static variables section */
-    .bss : {
+    .bss : ALIGN(4096) {
         *(.bss .bss.*)
     }
 
-    /* read-only data, like consts */
-    .rodata : {
+    .rodata : ALIGN(4096) {
         *(.rodata .rodata.*)
     }
     
-    .data : {
+    .data : ALIGN(4096) {
         *(.data .data.*)
-    }
-
-    /* contains info about exceptions */
-    .eh_frame : {
-        *(.eh_frame .eh_frame.*)
-    }
-    .eh_frame_hdr : {
-        *(.eh_frame_hdr .eh_frame_hdr.*)
     }
 }

@@ -1,4 +1,5 @@
-use core::{arch::asm, ptr::addr_of};
+use crate::{ata, print, println};
+use core::{mem, ptr::addr_of};
 
 /// Common FAT-family boot Sector and BIOS parameter blocks
 #[repr(C, packed)]
@@ -19,62 +20,110 @@ pub struct FatHeader {
     pub total_sectors_32: u32,
 }
 
+impl FatHeader {
+    pub fn root_directory_start_sector(&self) -> u16 {
+        self.reserved_sectors_count + self.sectors_per_fat * self.fat_count as u16
+    }
+
+    pub fn root_directory_size_bytes(&self) -> usize {
+        self.root_directory_entries as usize * mem::size_of::<DirectoryEntry>()
+    }
+
+    pub fn root_directory_size_sectors(&self) -> usize {
+        self.sectors_for_size(self.root_directory_size_bytes())
+    }
+
+    pub fn sectors_for_size(&self, size: usize) -> usize {
+        let bps = self.bytes_per_sector as usize;
+        let mut sectors = size / bps;
+        if size % bps != 0 {
+            sectors += 1;
+        }
+        sectors
+    }
+}
+
+#[repr(C, packed)]
+pub struct DirectoryEntry {
+    pub name: [u8; 11],
+    attributes: u8,
+    reserved: u8,
+    creation_time_tenth: u8,
+    creation_time: u16,
+    creation_date: u16,
+    last_access_date: u16,
+    first_cluster_high: u16,
+    write_time: u16,
+    write_date: u16,
+    first_cluster_low: u16,
+    pub file_size: u32,
+}
+
 pub fn load_header() -> FatHeader {
     let buffer = [0u8; 512];
-    load(0, 1, addr_of!(buffer) as u32);
+    ata::load(0, 1, addr_of!(buffer) as u32);
     let header: FatHeader = unsafe { core::ptr::read(buffer.as_ptr() as *const _) };
     header
 }
 
-// https://wiki.osdev.org/ATA_read/write_sectors
-fn load(lba: u32, sectors: u8, target: u32) {
-    unsafe {
-        asm!(
-            "mov ebx, eax",
+pub fn read_root_directory(header: &FatHeader) {
+    println!("\n* Root directory *");
+    println!(
+        "Root start sector: {}",
+        header.root_directory_start_sector()
+    );
+    let entries = header.root_directory_entries as usize;
+    println!(
+        "Root directory sectors size: {}",
+        header.root_directory_size_sectors(),
+    );
 
-            "mov edx, 0x01f6",      // port to send drive and 24-27 of LBA
-            "shr eax, 24",
-            "or al, 11100000b",     // select master drive
-            "out dx, al",
-
-            "mov edx, 0x01f2",      // port to send number of sectors
-            "mov al, cl",
-            "out dx, al",
-
-            "mov edx, 0x1f3",       // port to send bit 0-7 of LBA
-            "mov eax, ebx",
-            "out dx, al",
-
-            "mov edx, 0x1f4",       // port to send bit 8-15 of LBA
-            "mov eax, ebx",
-            "shr eax, 8",
-            "out dx, al",
-
-            "mov edx, 0x1f5",       // port to send bit 16-23 of LBA
-            "mov eax, ebx",
-            "shr eax, 16",
-            "out dx, al",
-
-            "mov edx, 0x1f7",       // command port
-            "mov al, 0x20",         // read with retry
-            "out dx, al",
-
-            "2:",                   // still going
-            "in al, dx",
-            "test al, 8",           // sector buffer require servicing
-            "jz 2b",                // until the sector buffer is ready
-
-            "mov eax, 256",         // read 1 sector = 256 words
-            "xor bx, bx",
-            "mov bl, cl",           // read CL sectors
-            "mul bx",
-            "mov ecx, eax",         // rcx is counter for INSW
-            "mov edx, 0x1f0",       // data port, in and out
-            "rep insw",
-
-            in("eax") lba,
-            in("cl") sectors,
-            in("edi") target,
-        )
+    let entry_size = mem::size_of::<DirectoryEntry>();
+    if header.bytes_per_sector as usize % entry_size != 0 {
+        println!("Sector size isn't expected");
+        return;
     }
+
+    let mut lba = header.root_directory_start_sector() as u32;
+    let mut items = 0;
+    let count = header.bytes_per_sector as usize / entry_size;
+    println!("count = {count}");
+    while items < entries {
+        let buffer = [0u8; 1024];
+        ata::load(lba, 1, addr_of!(buffer) as u32);
+        for i in 0..count {
+            let slice = &buffer[entry_size * i..entry_size * (i + 1)];
+            let entry: DirectoryEntry = unsafe { core::ptr::read(slice.as_ptr() as *const _) };
+            if entry.name[0] == 0 {
+                continue;
+            }
+            // item is unused
+            if entry.name[0] == 0xe5 {
+                continue;
+            }
+            {
+                let size = entry.file_size;
+                print!("Entry: '");
+                entry
+                    .name
+                    .iter()
+                    .map(|x| *x as char)
+                    .for_each(|x| print!("{x}"));
+                println!("' size: {} @ {lba}", size);
+            }
+        }
+        lba += 1;
+        items += count;
+        // delay
+        // {
+        //     let mut k = 0;
+        //     for _ in 0..u32::MAX / 100 {
+        //         k = (k + 1) % u32::MAX;
+        //     }
+        //     if k % 2 == 0 {
+        //         print!("");
+        //     }
+        // }
+    }
+    println!("done");
 }

@@ -3,6 +3,7 @@
 
 use core::arch::asm;
 
+mod ata;
 mod fat16;
 mod text_buffer;
 
@@ -13,6 +14,7 @@ pub extern "C" fn _stage2() -> ! {
     println!("Stage 2: Protected mode");
     let fat_header = fat16::load_header();
     print_header_info(&fat_header);
+    fat16::read_root_directory(&fat_header);
     halt()
 }
 
@@ -23,6 +25,7 @@ fn panic(info: &core::panic::PanicInfo) -> ! {
 }
 
 fn halt() -> ! {
+    println!("* Halted");
     unsafe {
         asm!("cli");
         loop {
@@ -32,7 +35,7 @@ fn halt() -> ! {
 }
 
 fn print_header_info(header: &fat16::FatHeader) {
-    println!("FAT Header:");
+    println!("\n* FAT Header *");
     {
         print!("OEM: ");
         header

@@ -6,7 +6,7 @@ BOOTLOADER = ${BUILD_DIR}/bootloader.bin
 KERNEL = ${BUILD_DIR}/kernel.bin
 KERNEL_BUILD_MODE = release
 
-.PHONY: prepare clean run
+.PHONY: prepare clean run always
 
 ${DISK_IMAGE}: prepare ${BOOTLOADER} ${KERNEL}
 	dd if=/dev/zero of=${DISK_IMAGE} bs=1M count=10
@@ -15,19 +15,19 @@ ${DISK_IMAGE}: prepare ${BOOTLOADER} ${KERNEL}
 	dd if=${BOOTLOADER} of=$@ conv=notrunc
 	mcopy -i $@ ${KERNEL} "::"
 
-${BOOTLOADER}:
+${BOOTLOADER}: always
 	cd boot && \
 	make && \
 	cd ..
 	cp ./boot/build/bootloader.bin $@	
 
-${KERNEL}:
+${KERNEL}: always
 	cd kernel && \
 	make && \
 	cd ..
 	cp ./kernel/build/kernel.bin $@	
 
-prepare:
+prepare: 
 	cp ./cfg/* ./boot/
 	cp ./cfg/x86_32.json ./kernel/
 	mkdir -p ${BUILD_DIR}
