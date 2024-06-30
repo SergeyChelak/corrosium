@@ -63,14 +63,6 @@ pub struct Writer {
 }
 
 impl Writer {
-    pub fn new() -> Self {
-        Self {
-            position: 0,
-            fg_color: Color::White,
-            bg_color: Color::Black,
-        }
-    }
-
     pub fn write_string(&mut self, string: &str) {
         string.bytes().for_each(|byte| self.write_byte(byte))
     }
