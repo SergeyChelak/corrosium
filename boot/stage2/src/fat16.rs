@@ -114,16 +114,6 @@ pub fn read_root_directory(header: &FatHeader) {
         }
         lba += 1;
         items += count;
-        // delay
-        // {
-        //     let mut k = 0;
-        //     for _ in 0..u32::MAX / 100 {
-        //         k = (k + 1) % u32::MAX;
-        //     }
-        //     if k % 2 == 0 {
-        //         print!("");
-        //     }
-        // }
     }
     println!("done");
 }
