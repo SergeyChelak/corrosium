@@ -8,19 +8,21 @@ SECTIONS {
         *(.start)
     }
 
-    .text : ALIGN(4096) {
+    .text : {
         *(.text .text.*)
     }
 
-    .bss : ALIGN(4096) {
-        *(.bss .bss.*)
-    }
-
-    .rodata : ALIGN(4096) {
+    .rodata : {
         *(.rodata .rodata.*)
     }
     
-    .data : ALIGN(4096) {
+    .data : {
         *(.data .data.*)
     }
+
+    .bss : {
+        *(.bss .bss.*)
+    }
+
+    . = 0x7e00 + 63 * 512;
 }

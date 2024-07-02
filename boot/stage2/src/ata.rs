@@ -1,9 +1,10 @@
 use core::arch::asm;
 
 // https://wiki.osdev.org/ATA_read/write_sectors
-pub fn load(lba: u32, sectors: u8, target: u32) {
+// #[inline(never)]
+pub fn load(lba: u32, sectors: u8, target: *mut u8) {
     unsafe {
-        asm!("pushfd", "push eax", "push ebx", "push ecx", "push edx", "push edi",);
+        // asm!("pushfd", "push eax", "push ebx", "push ecx", "push edx", "push edi",);
         asm!(
             "mov ebx, eax",
 
@@ -51,6 +52,6 @@ pub fn load(lba: u32, sectors: u8, target: u32) {
             in("cl") sectors,
             in("edi") target,
         );
-        asm!("pop edi", "pop edx", "pop ecx", "pop ebx", "pop eax", "popfd")
+        // asm!("pop edi", "pop edx", "pop ecx", "pop ebx", "pop eax", "popfd")
     }
 }

@@ -43,9 +43,17 @@ impl FatHeader {
     }
 }
 
+const ATTR_READ_ONLY: u8 = 0x01;
+const ATTR_HIDDEN: u8 = 0x02;
+const ATTR_SYSTEM: u8 = 0x04;
+const ATTR_VOLUME_ID: u8 = 0x08;
+const ATTR_DIRECTORY: u8 = 0x10;
+const ATTR_ARCHIVE: u8 = 0x20;
+const ATTR_LONG_NAME: u8 = ATTR_READ_ONLY | ATTR_HIDDEN | ATTR_SYSTEM | ATTR_VOLUME_ID;
+
 #[repr(C, packed)]
 pub struct DirectoryEntry {
-    pub name: [u8; 11],
+    name: [u8; 11],
     attributes: u8,
     reserved: u8,
     creation_time_tenth: u8,
@@ -56,52 +64,54 @@ pub struct DirectoryEntry {
     write_time: u16,
     write_date: u16,
     first_cluster_low: u16,
-    pub file_size: u32,
+    file_size: u32,
+}
+
+impl DirectoryEntry {
+    fn is_long_name(&self) -> bool {
+        self.attributes == ATTR_LONG_NAME
+    }
+
+    fn is_empty(&self) -> bool {
+        self.name[0] == 0 || self.name[0] == 0xe5
+    }
+
+    fn is_directory(&self) -> bool {
+        self.attributes & ATTR_DIRECTORY == 1
+    }
 }
 
 pub fn load_header() -> FatHeader {
     let buffer = [0u8; 512];
-    ata::load(0, 1, addr_of!(buffer) as u32);
-    let header: FatHeader = unsafe { core::ptr::read(buffer.as_ptr() as *const _) };
+    let addr = addr_of!(buffer) as *mut u8;
+    ata::load(0, 1, addr);
+    let header: FatHeader = unsafe { core::ptr::read_volatile(addr as *const _) };
     header
 }
 
 pub fn read_root_directory(header: &FatHeader) {
     println!("\n* Root directory *");
-    println!(
-        "Root start sector: {}",
-        header.root_directory_start_sector()
-    );
-    let entries = header.root_directory_entries as usize;
-    println!(
-        "Root directory sectors size: {}",
-        header.root_directory_size_sectors(),
-    );
-
     let entry_size = mem::size_of::<DirectoryEntry>();
     if header.bytes_per_sector as usize % entry_size != 0 {
         println!("Sector size isn't expected");
         return;
     }
-
+    let count = header.bytes_per_sector as usize / entry_size;
     let mut lba = header.root_directory_start_sector() as u32;
     let mut items = 0;
-    let count = header.bytes_per_sector as usize / entry_size;
-    println!("count = {count}");
+    let entries = header.root_directory_entries as usize;
+    let buffer = [0u8; 512];
     while items < entries {
-        let buffer = [0u8; 1024];
-        ata::load(lba, 1, addr_of!(buffer) as u32);
+        ata::load(lba, 1, addr_of!(buffer) as *mut _);
         for i in 0..count {
-            let slice = &buffer[entry_size * i..entry_size * (i + 1)];
-            let entry: DirectoryEntry = unsafe { core::ptr::read(slice.as_ptr() as *const _) };
-            if entry.name[0] == 0 {
-                continue;
-            }
-            // item is unused
-            if entry.name[0] == 0xe5 {
+            let slice = &buffer[entry_size * i..];
+            let entry: DirectoryEntry =
+                unsafe { core::ptr::read_volatile(slice.as_ptr() as *const _) };
+            if entry.is_empty() || entry.is_long_name() || entry.is_directory() {
                 continue;
             }
             {
+                let attr = entry.attributes;
                 let size = entry.file_size;
                 print!("Entry: '");
                 entry
@@ -109,11 +119,10 @@ pub fn read_root_directory(header: &FatHeader) {
                     .iter()
                     .map(|x| *x as char)
                     .for_each(|x| print!("{x}"));
-                println!("' size: {} @ {lba}", size);
+                println!("' size: {}, attributes: {attr:x}", size);
             }
         }
         lba += 1;
         items += count;
     }
-    println!("done");
 }

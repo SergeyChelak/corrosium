@@ -53,7 +53,7 @@ fn buffer_write(position: usize, value: u16) {
 }
 
 fn buffer_read(position: usize) -> u16 {
-    unsafe { core::ptr::read((BUFFER_START + 2 * position) as *mut u16) }
+    unsafe { core::ptr::read_volatile((BUFFER_START + 2 * position) as *mut u16) }
 }
 
 pub struct Writer {
