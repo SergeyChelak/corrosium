@@ -2,7 +2,7 @@ use core::arch::asm;
 
 // https://wiki.osdev.org/ATA_read/write_sectors
 // #[inline(never)]
-pub fn load(lba: u32, sectors: u8, target: *mut u8) {
+pub fn load(lba: u32, sectors: u8, target: *const u8) {
     unsafe {
         // asm!("pushfd", "push eax", "push ebx", "push ecx", "push edx", "push edi",);
         asm!(

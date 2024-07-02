@@ -102,7 +102,7 @@ pub fn read_root_directory(header: &FatHeader) {
     let entries = header.root_directory_entries as usize;
     let buffer = [0u8; 512];
     while items < entries {
-        ata::load(lba, 1, addr_of!(buffer) as *mut _);
+        ata::load(lba, 1, addr_of!(buffer) as *const _);
         for i in 0..count {
             let slice = &buffer[entry_size * i..];
             let entry: DirectoryEntry =
