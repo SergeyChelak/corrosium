@@ -14,17 +14,14 @@ ${DISK_IMAGE}: prepare ${BOOTLOADER} ${KERNEL}
 	mkfs.fat -R 64 ${DISK_IMAGE}
 	dd if=${BOOTLOADER} of=$@ conv=notrunc
 	mcopy -i $@ ${KERNEL} "::"
+	mcopy -i $@ ./cfg/* "::"
 
 ${BOOTLOADER}: always
-	cd boot && \
-	make && \
-	cd ..
+	make -C boot
 	cp ./boot/build/bootloader.bin $@	
 
 ${KERNEL}: always
-	cd kernel && \
-	make && \
-	cd ..
+	make -C kernel
 	cp ./kernel/build/kernel.bin $@	
 
 prepare: 
@@ -36,10 +33,6 @@ run: ${DISK_IMAGE}
 	${QEMU} -drive format=raw,file=$^
 
 clean:
-	cd boot && \
-	make clean && \
-	cd ..
-	cd kernel && \
-	make clean && \
-	cd .. 
+	make -C boot clean
+	make -C kernel clean
 	rm -fr ${BUILD_DIR}
