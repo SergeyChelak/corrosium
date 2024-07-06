@@ -1,8 +1,22 @@
 use core::arch::asm;
 
+use crate::println;
+
+extern "C" {
+    #[link_name = "_disk_buffer"]
+    static disk_buffer: u32;
+}
+
+pub fn load_into_buffer(lba: u32, sectors: u8) -> *const u32 {
+    let addr: *const u32 = unsafe { &disk_buffer };
+    load(lba, sectors, addr);
+    addr
+}
+
 // https://wiki.osdev.org/ATA_read/write_sectors
-// #[inline(never)]
-pub fn load(lba: u32, sectors: u8, target: *const u8) {
+#[inline(never)]
+pub fn load(lba: u32, sectors: u8, target: *const u32) {
+    // println!("Read from lba: {lba} sectors: {sectors} into: {:p}", target);
     unsafe {
         // asm!("pushfd", "push eax", "push ebx", "push ecx", "push edx", "push edi",);
         asm!(
