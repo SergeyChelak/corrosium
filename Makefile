@@ -1,7 +1,7 @@
 BUILD_DIR = build
 QEMU = qemu-system-x86_64
 
-DISK_IMAGE = ${BUILD_DIR}/corrosuim.iso
+DISK_IMAGE = ${BUILD_DIR}/corrosium.iso
 BOOTLOADER = ${BUILD_DIR}/bootloader.bin
 KERNEL = ${BUILD_DIR}/kernel.bin
 KERNEL_BUILD_MODE = release
