@@ -74,3 +74,12 @@ pub fn println_str_buffer(buffer: &[u8]) {
     print_str_buffer(buffer);
     println!();
 }
+
+pub fn dump_memory(address: u32, count: u32) {
+    for i in 0..count {
+        let addr = address + i;
+        let byte: u8 = unsafe { core::ptr::read(addr as *const _) };
+        print!("{:<4x}", byte);
+    }
+    println!();
+}

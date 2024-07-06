@@ -3,6 +3,7 @@
 
 use core::arch::asm;
 
+use debug::dump_memory;
 use fat::{find_root_entry, DirectoryEntry, FatHeader, SECTOR_SIZE};
 
 mod ata;
@@ -100,15 +101,6 @@ pub extern "C" fn _stage2() -> ! {
     halt()
 }
 
-fn dump_memory(address: u32, count: u32) {
-    for i in 0..count {
-        let addr = address + i;
-        let byte: u8 = unsafe { core::ptr::read(addr as *const _) };
-        print!("{:<4x}", byte);
-    }
-    println!();
-}
-
 fn kernel_entry(header: &FatHeader) -> Option<DirectoryEntry> {
     let predicate = |entry: &DirectoryEntry| {
         entry
@@ -126,7 +118,7 @@ fn panic(info: &core::panic::PanicInfo) -> ! {
     halt()
 }
 
-pub fn jump(address: u32) {
+fn jump(address: u32) {
     unsafe {
         asm!("jmp {0:e}", in(reg) address);
     }
