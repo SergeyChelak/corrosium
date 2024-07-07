@@ -29,7 +29,7 @@ pub fn find_root_entry(
     while items < entries {
         let buffer_addr = ata::load_into_buffer(lba, 1);
         for i in 0..entries_per_sector {
-            let addr = buffer_addr as u32 + (entry_size * i) as u32;
+            let addr = buffer_addr as usize + entry_size * i;
             let entry: DirectoryEntry = unsafe { core::ptr::read_volatile(addr as *const _) };
             if entry.is_empty() || entry.is_long_name() || entry.is_directory() {
                 continue;

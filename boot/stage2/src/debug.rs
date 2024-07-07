@@ -46,7 +46,7 @@ pub fn println_str_buffer(buffer: &[u8]) {
     println!();
 }
 
-pub fn dump_memory(address: u32, count: u32) {
+pub fn dump_memory(address: usize, count: usize) {
     for i in 0..count {
         let addr = address + i;
         let byte: u8 = unsafe { core::ptr::read(addr as *const _) };

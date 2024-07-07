@@ -14,20 +14,20 @@ const REG_CMD_STAT: u16 = 7; // command/status
 
 extern "C" {
     #[link_name = "_disk_buffer"]
-    static disk_buffer: u32;
+    static disk_buffer: usize;
 }
 
-pub fn load_into_buffer(lba: u32, sectors: u8) -> *const u32 {
-    let addr: *const u32 = unsafe { &disk_buffer };
+pub fn load_into_buffer(lba: u32, sectors: u8) -> *const usize {
+    let addr: *const usize = unsafe { &disk_buffer };
     load(lba, sectors, addr);
     addr
 }
 
-pub fn load(lba: u32, sectors: u8, target: *const u32) {
+pub fn load(lba: u32, sectors: u8, target: *const usize) {
     ata_load(PRIMARY_DRIVE, lba, sectors, target)
 }
 
-fn ata_load(drive_port: u16, lba: u32, sectors: u8, target: *const u32) {
+fn ata_load(drive_port: u16, lba: u32, sectors: u8, target: *const usize) {
     unsafe {
         asm!("mov edi, {0}", in(reg) target);
     }

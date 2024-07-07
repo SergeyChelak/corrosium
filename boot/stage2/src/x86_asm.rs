@@ -30,6 +30,6 @@ pub fn cli() {
     unsafe { asm!("cli") }
 }
 
-pub fn jump(address: u32) {
+pub fn jump(address: usize) {
     unsafe { asm!("jmp {0:e}", in(reg) address) }
 }

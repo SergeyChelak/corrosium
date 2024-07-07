@@ -14,11 +14,11 @@ const FAT_TABLE_MAX_SECTORS: usize = 20;
 const KERNEL_FILE_NAME: [u8; 11] = [
     b'K', b'E', b'R', b'N', b'E', b'L', b' ', b' ', b'B', b'I', b'N',
 ];
-const KERNEL_TARGET_ADDR: u32 = 0x100_000;
+const KERNEL_TARGET_ADDR: usize = 0x100_000;
 
 extern "C" {
     #[link_name = "_fat_table"]
-    static fat_table: u32;
+    static fat_table: usize;
 }
 
 #[no_mangle]
@@ -43,7 +43,7 @@ pub extern "C" fn _stage2() -> ! {
     debug::print_entry(&entry);
 
     // load fat
-    let fat_table_addr: *const u32 = unsafe { &fat_table };
+    let fat_table_addr: *const usize = unsafe { &fat_table };
     ata::load(
         header.reserved_sectors_count as u32,
         header.sectors_per_fat as u8,
@@ -66,7 +66,7 @@ pub extern "C" fn _stage2() -> ! {
         // first two clusters are reserved
         let lba = lba_data_region + (current_cluster - 2) * header.sectors_per_cluster as u16;
         ata::load(lba as u32, header.sectors_per_cluster, addr as *const _);
-        addr += header.sectors_per_cluster as u32 * SECTOR_SIZE as u32;
+        addr += header.sectors_per_cluster as usize * SECTOR_SIZE;
         let byte_idx = 2 * current_cluster as u32;
         if fat(byte_idx + 1) == 0xff && fat(byte_idx) == 0xff {
             break;
