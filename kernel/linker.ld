@@ -3,10 +3,6 @@ ENTRY(kernel_main)
 SECTIONS {
     . = 1M;
 
-    .kernel_start : {
-        *(.kernel_start)
-    }
-
     /* code section */
     .text : {
         *(.text .text.*)

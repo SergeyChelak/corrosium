@@ -2,7 +2,7 @@
 #![no_main]
 
 #[no_mangle]
-#[link_section = ".kernel_start"]
+#[link_section = ".text"]
 pub extern "C" fn kernel_main() -> ! {
     // green background, white foreground
     let clr = (2 as u8) << 4 | (15 as u8);
