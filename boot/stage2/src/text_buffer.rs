@@ -1,6 +1,4 @@
 use core::fmt;
-use lazy_static::lazy_static;
-use spin::Mutex;
 
 const BUFFER_START: usize = 0xb8000;
 const BUFFER_ROWS: usize = 25;
@@ -53,7 +51,7 @@ fn buffer_write(position: usize, value: u16) {
 }
 
 fn buffer_read(position: usize) -> u16 {
-    unsafe { core::ptr::read_volatile((BUFFER_START + 2 * position) as *mut u16) }
+    unsafe { core::ptr::read_volatile((BUFFER_START + 2 * position) as *const u16) }
 }
 
 pub struct Writer {
@@ -117,14 +115,11 @@ impl fmt::Write for Writer {
         Ok(())
     }
 }
-
-lazy_static! {
-    pub static ref WRITER: Mutex<Writer> = Mutex::new(Writer {
-        position: 0,
-        fg_color: Color::White,
-        bg_color: Color::Black,
-    });
-}
+pub static mut WRITER: Writer = Writer {
+    position: 0,
+    fg_color: Color::White,
+    bg_color: Color::Black,
+};
 
 #[macro_export]
 macro_rules! print {
@@ -140,5 +135,5 @@ macro_rules! println {
 #[doc(hidden)]
 pub fn _print(args: fmt::Arguments) {
     use core::fmt::Write;
-    WRITER.lock().write_fmt(args).unwrap();
+    unsafe { WRITER.write_fmt(args).unwrap() }
 }

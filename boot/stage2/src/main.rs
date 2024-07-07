@@ -57,28 +57,20 @@ pub extern "C" fn _stage2() -> ! {
     let mut current_cluster = entry.get_start_cluster();
     debug::print_entry(&entry);
 
-    let mut addr = KERNEL_TARGET_ADDR;
-
     let fat = |i: u32| -> u8 {
         unsafe {
             let addr = fat_table_addr as u32 + i;
-            core::ptr::read_volatile(addr as *const _)
+            core::ptr::read(addr as *const _)
         }
     };
-
+    let mut addr = KERNEL_TARGET_ADDR;
     loop {
         // first two clusters are reserved
         let lba = lba_data_region + (current_cluster - 2) * header.sectors_per_cluster as u16;
         ata::load(lba as u32, header.sectors_per_cluster, addr as *const _);
         addr += header.sectors_per_cluster as u32 * SECTOR_SIZE as u32;
         let byte_idx = 2 * current_cluster as u32;
-        let marker = {
-            let low = fat(byte_idx + 1) as u16;
-            let high = (fat(byte_idx) as u16) << 8;
-            println!("idx: {} low: {} high: {}", byte_idx, low, high);
-            low | high
-        };
-        if marker == 0xffff {
+        if fat(byte_idx + 1) == 0xff && fat(byte_idx) == 0xff {
             break;
         }
         current_cluster += 1;
