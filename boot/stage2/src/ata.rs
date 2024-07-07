@@ -32,7 +32,9 @@ pub fn load(lba: u32, sectors: u8, target: *const u32) {
     out_b(PRIMARY_DRIVE + REG_CMD_STAT, 0x20);
     for _ in 0..sectors {
         // retry
-        while in_b(PRIMARY_DRIVE + REG_CMD_STAT) & 8 == 0 {}
+        while in_b(PRIMARY_DRIVE + REG_CMD_STAT) & 8 == 0 {
+            delay(1)
+        }
         // read data into buffer
         unsafe {
             asm!(
@@ -46,10 +48,8 @@ pub fn load(lba: u32, sectors: u8, target: *const u32) {
     }
 }
 
-pub fn load_into_buffer(lba: u32, sectors: u8) -> *const u32 {
-    let addr: *const u32 = unsafe { &disk_buffer };
-    load(lba, sectors, addr);
-    addr
+fn delay(times: u32) {
+    (0..times).for_each(|_| out_b(0x80, 0))
 }
 
 fn out_b(port: u16, byte: u8) {
@@ -72,4 +72,10 @@ fn in_b(port: u16) -> u8 {
         )
     }
     byte
+}
+
+pub fn load_into_buffer(lba: u32, sectors: u8) -> *const u32 {
+    let addr: *const u32 = unsafe { &disk_buffer };
+    load(lba, sectors, addr);
+    addr
 }
