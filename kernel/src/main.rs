@@ -1,19 +1,25 @@
 #![no_std]
 #![no_main]
 
+mod vga_text;
+mod x86;
+
 #[no_mangle]
 #[link_section = ".text"]
 pub extern "C" fn kernel_main() -> ! {
-    // green background, white foreground
-    let clr = (2 as u8) << 4 | (15 as u8);
-    let value = (b'K' as u16) | (clr as u16) << 8;
-    unsafe {
-        core::ptr::write_volatile(0xb8000 as *mut u16, value);
-    }
-    loop {}
+    vga_text::clear();
+    println!("kernel_main()");
+    system_halt()
 }
 
 #[panic_handler]
 fn panic(_info: &core::panic::PanicInfo) -> ! {
-    loop {}
+    system_halt()
+}
+
+fn system_halt() -> ! {
+    x86::cli();
+    loop {
+        x86::hlt();
+    }
 }

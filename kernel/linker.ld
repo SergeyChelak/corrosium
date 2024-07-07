@@ -4,7 +4,7 @@ SECTIONS {
     . = 1M;
 
     /* code section */
-    .text : {
+    .text : AT(0x100000) {
         *(.text .text.*)
     }
 
