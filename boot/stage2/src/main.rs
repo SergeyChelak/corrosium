@@ -36,7 +36,7 @@ pub extern "C" fn _stage2() -> ! {
         let size = header.sectors_per_fat;
         panic!("FAT size is invalid: {size}. Expected 1..20");
     }
-    debug::print_header_info(&header);
+    // debug::print_header_info(&header);
 
     let Some(entry) = kernel_entry(&header) else {
         panic!("Kernel not found");
@@ -50,12 +50,11 @@ pub extern "C" fn _stage2() -> ! {
         header.sectors_per_fat as u8,
         fat_table_addr,
     );
-    dump_memory(fat_table_addr as u32, 20);
+    println!("FAT loaded");
 
     // load kernel
     let lba_data_region = header.data_region_start_sector();
     let mut current_cluster = entry.get_start_cluster();
-    debug::print_entry(&entry);
 
     let fat = |i: u32| -> u8 {
         unsafe {
@@ -76,7 +75,7 @@ pub extern "C" fn _stage2() -> ! {
         current_cluster += 1;
     }
 
-    println!("Kernel beginning:");
+    println!("Kernel loaded");
     dump_memory(KERNEL_TARGET_ADDR, 20);
     jump(KERNEL_TARGET_ADDR);
     halt()
