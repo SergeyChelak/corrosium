@@ -15,24 +15,33 @@ extern "C" {
     static disk_buffer: u32;
 }
 
-#[inline(never)]
+pub fn load_into_buffer(lba: u32, sectors: u8) -> *const u32 {
+    let addr: *const u32 = unsafe { &disk_buffer };
+    load(lba, sectors, addr);
+    addr
+}
+
 pub fn load(lba: u32, sectors: u8, target: *const u32) {
+    ata_load(PRIMARY_DRIVE, lba, sectors, target)
+}
+
+fn ata_load(drive_port: u16, lba: u32, sectors: u8, target: *const u32) {
     unsafe {
         asm!("mov edi, {0}", in(reg) target);
     }
     // highest 8 bit of LBA | master
-    out_b(PRIMARY_DRIVE + REG_DRIVE, (lba >> 24 & 0xff) as u8 | 0xe0);
+    out_b(drive_port + REG_DRIVE, (lba >> 24 & 0xff) as u8 | 0xe0);
     // number of sectors
-    out_b(PRIMARY_DRIVE + REG_SEC_COUNT, sectors & 0xff);
+    out_b(drive_port + REG_SEC_COUNT, sectors & 0xff);
     // LBA
-    out_b(PRIMARY_DRIVE + REG_LBA_LOW, ((lba >> 0) & 0xff) as u8);
-    out_b(PRIMARY_DRIVE + REG_LBA_MID, ((lba >> 8) & 0xff) as u8);
-    out_b(PRIMARY_DRIVE + REG_LBA_HIGH, ((lba >> 16) & 0xff) as u8);
+    out_b(drive_port + REG_LBA_LOW, ((lba >> 0) & 0xff) as u8);
+    out_b(drive_port + REG_LBA_MID, ((lba >> 8) & 0xff) as u8);
+    out_b(drive_port + REG_LBA_HIGH, ((lba >> 16) & 0xff) as u8);
     // send read sectors command
-    out_b(PRIMARY_DRIVE + REG_CMD_STAT, 0x20);
+    out_b(drive_port + REG_CMD_STAT, 0x20);
     for _ in 0..sectors {
         // retry
-        while in_b(PRIMARY_DRIVE + REG_CMD_STAT) & 8 == 0 {
+        while in_b(drive_port + REG_CMD_STAT) & 8 == 0 {
             delay(1)
         }
         // read data into buffer
@@ -42,7 +51,7 @@ pub fn load(lba: u32, sectors: u8, target: *const u32) {
                 "mov ecx, 256",
                 "rep insw",
                 "pop ecx",
-                in("edx") PRIMARY_DRIVE + REG_DATA,
+                in("edx") drive_port + REG_DATA,
             )
         }
     }
@@ -72,10 +81,4 @@ fn in_b(port: u16) -> u8 {
         )
     }
     byte
-}
-
-pub fn load_into_buffer(lba: u32, sectors: u8) -> *const u32 {
-    let addr: *const u32 = unsafe { &disk_buffer };
-    load(lba, sectors, addr);
-    addr
 }
