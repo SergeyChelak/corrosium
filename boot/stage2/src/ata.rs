@@ -1,5 +1,7 @@
 use core::arch::asm;
 
+use crate::x86_asm::{in_b, out_b};
+
 const PRIMARY_DRIVE: u16 = 0x1f0;
 
 const REG_DATA: u16 = 0; // data read/write
@@ -42,7 +44,7 @@ fn ata_load(drive_port: u16, lba: u32, sectors: u8, target: *const u32) {
     for _ in 0..sectors {
         // retry
         while in_b(drive_port + REG_CMD_STAT) & 8 == 0 {
-            delay(1)
+            io_delay(1)
         }
         // read data into buffer
         unsafe {
@@ -57,28 +59,6 @@ fn ata_load(drive_port: u16, lba: u32, sectors: u8, target: *const u32) {
     }
 }
 
-fn delay(times: u32) {
+fn io_delay(times: u32) {
     (0..times).for_each(|_| out_b(0x80, 0))
-}
-
-fn out_b(port: u16, byte: u8) {
-    unsafe {
-        asm!(
-            "out dx, al",
-            in("dx") port,
-            in("al") byte
-        )
-    }
-}
-
-fn in_b(port: u16) -> u8 {
-    let byte: u8;
-    unsafe {
-        asm!(
-            "in al, dx",
-            in("dx") port,
-            out("al") byte
-        )
-    }
-    byte
 }

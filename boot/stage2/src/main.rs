@@ -1,8 +1,6 @@
 #![no_std]
 #![no_main]
 
-use core::arch::asm;
-
 use debug::dump_memory;
 use fat::{find_root_entry, DirectoryEntry, FatHeader, SECTOR_SIZE};
 
@@ -10,6 +8,7 @@ mod ata;
 mod debug;
 mod fat;
 mod text_buffer;
+mod x86_asm;
 
 const FAT_TABLE_MAX_SECTORS: usize = 20;
 const KERNEL_FILE_NAME: [u8; 11] = [
@@ -77,7 +76,7 @@ pub extern "C" fn _stage2() -> ! {
 
     println!("Kernel loaded");
     dump_memory(KERNEL_TARGET_ADDR, 20);
-    jump(KERNEL_TARGET_ADDR);
+    x86_asm::jump(KERNEL_TARGET_ADDR);
     halt()
 }
 
@@ -98,18 +97,10 @@ fn panic(info: &core::panic::PanicInfo) -> ! {
     halt()
 }
 
-fn jump(address: u32) {
-    unsafe {
-        asm!("jmp {0:e}", in(reg) address);
-    }
-}
-
 fn halt() -> ! {
     println!("[Halted]");
-    unsafe {
-        asm!("cli");
-        loop {
-            asm!("hlt")
-        }
+    x86_asm::cli();
+    loop {
+        x86_asm::hlt()
     }
 }
