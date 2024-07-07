@@ -38,40 +38,30 @@ pub extern "C" fn _stage2() -> ! {
     }
     debug::print_header_info(&header);
 
-    // load fat
-    // let fat_table_addr: *const u32 = unsafe { &fat_table };
-    // for sector in 0..header.sectors_per_fat as u32 {
-    //     // println!("Loading sectors #{sector}");
-    //     ata::load(
-    //         header.reserved_sectors_count as u32 + sector,
-    //         1, //header.sectors_per_fat as u8,
-    //         unsafe { fat_table_addr.add(sector as usize * SECTOR_SIZE) },
-    //     );
-    // }
-
     let Some(entry) = kernel_entry(&header) else {
         panic!("Kernel not found");
     };
     debug::print_entry(&entry);
 
-    {
-        let lba_data_region = header.data_region_start_sector();
-        let current_cluster = entry.get_start_cluster();
-        let lba = lba_data_region + (current_cluster - 2) * header.sectors_per_cluster as u16;
-        let addr = ata::load_into_buffer(lba as u32, 1);
-        println!("Buffer dump:");
-        dump_memory(addr as u32, 20);
-    }
+    // load fat
+    let fat_table_addr: *const u32 = unsafe { &fat_table };
+    ata::load(
+        header.reserved_sectors_count as u32,
+        header.sectors_per_fat as u8,
+        fat_table_addr,
+    );
+    dump_memory(fat_table_addr as u32, 20);
 
-    /*
     // load kernel
     let lba_data_region = header.data_region_start_sector();
     let mut current_cluster = entry.get_start_cluster();
+    debug::print_entry(&entry);
+
     let mut addr = KERNEL_TARGET_ADDR;
 
     let fat = |i: u32| -> u8 {
         unsafe {
-            let addr = fat_table_addr.add(i as usize);
+            let addr = fat_table_addr as u32 + i;
             core::ptr::read_volatile(addr as *const _)
         }
     };
@@ -85,19 +75,18 @@ pub extern "C" fn _stage2() -> ! {
         let marker = {
             let low = fat(byte_idx + 1) as u16;
             let high = (fat(byte_idx) as u16) << 8;
+            println!("idx: {} low: {} high: {}", byte_idx, low, high);
             low | high
         };
         if marker == 0xffff {
-            println!("Terminal cluster found");
             break;
         }
         current_cluster += 1;
-        // println!("Cluster: {current_cluster}, marker: {marker}")
     }
 
-    dump_memory(KERNEL_TARGET_ADDR, 18);
-    */
-    // jump(KERNEL_TARGET_ADDR);
+    println!("Kernel beginning:");
+    dump_memory(KERNEL_TARGET_ADDR, 20);
+    jump(KERNEL_TARGET_ADDR);
     halt()
 }
 

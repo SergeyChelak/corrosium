@@ -1,10 +1,49 @@
 use core::arch::asm;
 
-use crate::println;
+const PRIMARY_DRIVE: u16 = 0x1f0;
+
+const REG_DATA: u16 = 0; // data read/write
+const REG_SEC_COUNT: u16 = 2; // number of sectors
+const REG_LBA_LOW: u16 = 3; // LBA low
+const REG_LBA_MID: u16 = 4; // LBA mid
+const REG_LBA_HIGH: u16 = 5; // LBA high
+const REG_DRIVE: u16 = 6; // select drive
+const REG_CMD_STAT: u16 = 7; // command/status
 
 extern "C" {
     #[link_name = "_disk_buffer"]
     static disk_buffer: u32;
+}
+
+#[inline(never)]
+pub fn load(lba: u32, sectors: u8, target: *const u32) {
+    unsafe {
+        asm!("mov edi, {0}", in(reg) target);
+    }
+    // highest 8 bit of LBA | master
+    out_b(PRIMARY_DRIVE + REG_DRIVE, (lba >> 24 & 0xff) as u8 | 0xe0);
+    // number of sectors
+    out_b(PRIMARY_DRIVE + REG_SEC_COUNT, sectors & 0xff);
+    // LBA
+    out_b(PRIMARY_DRIVE + REG_LBA_LOW, ((lba >> 0) & 0xff) as u8);
+    out_b(PRIMARY_DRIVE + REG_LBA_MID, ((lba >> 8) & 0xff) as u8);
+    out_b(PRIMARY_DRIVE + REG_LBA_HIGH, ((lba >> 16) & 0xff) as u8);
+    // send read sectors command
+    out_b(PRIMARY_DRIVE + REG_CMD_STAT, 0x20);
+    for _ in 0..sectors {
+        // retry
+        while in_b(PRIMARY_DRIVE + REG_CMD_STAT) & 8 == 0 {}
+        // read data into buffer
+        unsafe {
+            asm!(
+                "push ecx",
+                "mov ecx, 256",
+                "rep insw",
+                "pop ecx",
+                in("edx") PRIMARY_DRIVE + REG_DATA,
+            )
+        }
+    }
 }
 
 pub fn load_into_buffer(lba: u32, sectors: u8) -> *const u32 {
@@ -13,59 +52,24 @@ pub fn load_into_buffer(lba: u32, sectors: u8) -> *const u32 {
     addr
 }
 
-// https://wiki.osdev.org/ATA_read/write_sectors
-#[inline(never)]
-pub fn load(lba: u32, sectors: u8, target: *const u32) {
-    // println!("Read from lba: {lba} sectors: {sectors} into: {:p}", target);
+fn out_b(port: u16, byte: u8) {
     unsafe {
-        // asm!("pushfd", "push eax", "push ebx", "push ecx", "push edx", "push edi",);
         asm!(
-            "mov ebx, eax",
-
-            "mov edx, 0x01f6",      // port to send drive and 24-27 of LBA
-            "shr eax, 24",
-            "or al, 11100000b",     // select master drive
             "out dx, al",
-
-            "mov edx, 0x01f2",      // port to send number of sectors
-            "mov al, cl",
-            "out dx, al",
-
-            "mov edx, 0x01f3",       // port to send bit 0-7 of LBA
-            "mov eax, ebx",
-            "out dx, al",
-
-            "mov edx, 0x01f4",       // port to send bit 8-15 of LBA
-            "mov eax, ebx",
-            "shr eax, 8",
-            "out dx, al",
-
-            "mov edx, 0x01f5",       // port to send bit 16-23 of LBA
-            "mov eax, ebx",
-            "shr eax, 16",
-            "out dx, al",
-
-            "mov edx, 0x01f7",       // command port
-            "mov al, 0x20",          // read with retry
-            "out dx, al",
-
-            "2:",                   // still going
-            "in al, dx",
-            "test al, 8",           // sector buffer require servicing
-            "jz 2b",                // until the sector buffer is ready
-
-            "mov eax, 256",         // read 1 sector = 256 words
-            "xor bx, bx",
-            "mov bl, cl",           // read CL sectors
-            "mul bx",
-            "mov ecx, eax",         // rcx is counter for INSW
-            "mov edx, 0x1f0",       // data port, in and out
-            "rep insw",
-
-            in("eax") lba,
-            in("cl") sectors,
-            in("edi") target,
-        );
-        // asm!("pop edi", "pop edx", "pop ecx", "pop ebx", "pop eax", "popfd")
+            in("dx") port,
+            in("al") byte
+        )
     }
+}
+
+fn in_b(port: u16) -> u8 {
+    let byte: u8;
+    unsafe {
+        asm!(
+            "in al, dx",
+            in("dx") port,
+            out("al") byte
+        )
+    }
+    byte
 }

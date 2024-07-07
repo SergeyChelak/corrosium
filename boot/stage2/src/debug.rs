@@ -5,54 +5,24 @@ pub fn print_header_info(header: &FatHeader) {
         print!("OEM: ");
         println_str_buffer(&header.oem_name);
     }
-    {
-        let val = header.bytes_per_sector;
-        println!("Bytes per sector: {}", val);
-    }
-    {
-        let val = header.sectors_per_cluster;
-        println!("Sectors per cluster: {}", val);
-    }
-    {
-        let val = header.reserved_sectors_count;
-        println!("Reserved sectors: {}", val);
-    }
-    {
-        let val = header.fat_count;
-        println!("FATs count: {}", val);
-    }
-    {
-        let val = header.root_directory_entries;
-        println!("Root directory entries: {}", val);
-    }
-    {
-        let val = header.total_sectors;
-        println!("Total sectors low: {:x}h", val);
-    }
-    {
-        let val = header.media_descriptor_type;
-        println!("Media descriptor type: {:x}h", val);
-    }
-    {
-        let val = header.sectors_per_fat;
-        println!("Sectors per FAT: {:}", val);
-    }
-    {
-        let val = header.sectors_per_track;
-        println!("Sectors per track: {:}", val);
-    }
-    {
-        let val = header.number_of_heads;
-        println!("Heads number: {:}", val);
-    }
-    {
-        let val = header.hidden_sectors;
-        println!("Hidden sectors: {:}", val);
-    }
-    {
-        let val = header.total_sectors_32;
-        println!("Total sectors: {:x}h", val);
-    }
+    println!("Bytes per sector: {}", header.bytes_per_sector as u16);
+    println!("Sectors per cluster: {}", header.sectors_per_cluster as u8);
+    println!("Reserved sectors: {}", header.reserved_sectors_count as u16);
+    println!("FATs count: {}", header.fat_count as u8);
+    println!(
+        "Root directory entries: {}",
+        header.root_directory_entries as u16
+    );
+    println!("Total sectors low: {:x}h", header.total_sectors as u16);
+    println!(
+        "Media descriptor type: {:x}h",
+        header.media_descriptor_type as u8
+    );
+    println!("Sectors per FAT: {:}", header.sectors_per_fat as u16);
+    println!("Sectors per track: {:}", header.sectors_per_track as u16);
+    println!("Heads number: {:}", header.number_of_heads as u16);
+    println!("Hidden sectors: {:}", header.hidden_sectors as u32);
+    println!("Total sectors: {:x}h", header.total_sectors_32 as u32);
 }
 
 pub fn print_entry(entry: &crate::fat::DirectoryEntry) {
@@ -60,7 +30,8 @@ pub fn print_entry(entry: &crate::fat::DirectoryEntry) {
     let size = entry.file_size;
     print!("'");
     print_str_buffer(&entry.name);
-    println!("' size: {}, attributes: {attr:x}", size);
+    let cluster = entry.get_start_cluster();
+    println!("' size: {} | attr: 0x{attr:x} | cluster: {}", size, cluster);
 }
 
 pub fn print_str_buffer(buffer: &[u8]) {
