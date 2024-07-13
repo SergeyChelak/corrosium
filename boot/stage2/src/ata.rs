@@ -1,6 +1,6 @@
 use core::arch::asm;
 
-use crate::x86_asm::{in_b, out_b};
+use crate::asm86::{in_b, out_b};
 
 const PRIMARY_DRIVE: u16 = 0x1f0;
 
@@ -17,17 +17,17 @@ extern "C" {
     static disk_buffer: usize;
 }
 
-pub fn load_into_buffer(lba: u32, sectors: u8) -> *const usize {
+pub fn load_into_buffer(lba: usize, sectors: u8) -> *const usize {
     let addr: *const usize = unsafe { &disk_buffer };
     load(lba, sectors, addr);
     addr
 }
 
-pub fn load(lba: u32, sectors: u8, target: *const usize) {
+pub fn load(lba: usize, sectors: u8, target: *const usize) {
     ata_load(PRIMARY_DRIVE, lba, sectors, target)
 }
 
-fn ata_load(drive_port: u16, lba: u32, sectors: u8, target: *const usize) {
+fn ata_load(drive_port: u16, lba: usize, sectors: u8, target: *const usize) {
     unsafe {
         asm!("mov edi, {0}", in(reg) target);
     }

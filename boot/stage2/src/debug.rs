@@ -1,5 +1,6 @@
 use crate::{fat::*, print, println};
 
+#[allow(dead_code)]
 pub fn print_header_info(header: &FatHeader) {
     {
         print!("OEM: ");
@@ -25,6 +26,7 @@ pub fn print_header_info(header: &FatHeader) {
     println!("Total sectors: {:x}h", header.total_sectors_32 as u32);
 }
 
+#[allow(dead_code)]
 pub fn print_entry(entry: &crate::fat::DirectoryEntry) {
     let attr = entry.attributes;
     let size = entry.file_size;
@@ -46,6 +48,7 @@ pub fn println_str_buffer(buffer: &[u8]) {
     println!();
 }
 
+#[allow(dead_code)]
 pub fn dump_memory(address: usize, count: usize) {
     for i in 0..count {
         let addr = address + i;
