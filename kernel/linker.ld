@@ -1,7 +1,7 @@
 ENTRY(kernel_main)
 
 SECTIONS {
-    . = 1M;
+    . = 0x100000;
 
     /* code section */
     .text : AT(0x100000) {
