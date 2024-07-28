@@ -39,9 +39,7 @@ fn main() -> ! {
     // debug::dump_memory(KERNEL_TARGET_ADDR, 20);
     let checksum = checksum(KERNEL_TARGET_ADDR, entry.file_size as usize);
     println!("Checksum {}", checksum);
-    /*
-    // asm86::jump(KERNEL_TARGET_ADDR);
-     */
+    asm86::jump(KERNEL_TARGET_ADDR);
     halt()
 }
 
