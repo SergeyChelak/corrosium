@@ -1,10 +1,4 @@
-UNAME = ${shell uname}
-ifeq (${UNAME}, Linux)
-	OBJCOPY = objcopy	
-endif
-ifeq (${UNAME}, Darwin)
-	OBJCOPY = ${shell brew --prefix binutils}/bin/objcopy	
-endif
+OBJCOPY ?= objcopy
 
 BUILD_DIR = build
 KERNEL = ${BUILD_DIR}/kernel.bin

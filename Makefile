@@ -4,6 +4,7 @@ ifeq (${UNAME}, Linux)
 	MCOPY = mcopy
 endif
 ifeq (${UNAME}, Darwin)
+	export OBJCOPY = ${shell brew --prefix binutils}/bin/objcopy
 	MKFS_FAT = ${shell brew --prefix dosfstools}/sbin/mkfs.fat
 	MCOPY = ${shell brew --prefix mtools}/bin/mcopy
 endif

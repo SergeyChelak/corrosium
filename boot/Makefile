@@ -1,10 +1,4 @@
-UNAME = ${shell uname}
-ifeq (${UNAME}, Darwin)
-	OBJCOPY = ${shell brew --prefix binutils}/bin/objcopy	
-endif
-ifeq (${UNAME}, Linux)
-	OBJCOPY = objcopy	
-endif
+OBJCOPY ?= objcopy
 
 BUILD_DIR = build
 BUILD_MODE = release
