@@ -24,7 +24,7 @@ ${DISK_IMAGE}: prepare ${BOOTLOADER} ${KERNEL}
 	${MKFS_FAT} -R 64 ${DISK_IMAGE}
 	dd if=${BOOTLOADER} of=$@ conv=notrunc
 	${MCOPY} -i $@ ${KERNEL} "::"
-	${MCOPY} -i $@ ./cfg/* "::"
+# ${MCOPY} -i $@ ./cfg/* "::"
 
 ${BOOTLOADER}: always
 	make -C boot
