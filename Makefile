@@ -1,3 +1,13 @@
+UNAME = ${shell uname}
+ifeq (${UNAME}, Linux)
+	MKFS_FAT = mkfs.fat
+	MCOPY = mcopy
+endif
+ifeq (${UNAME}, Darwin)
+	MKFS_FAT = ${shell brew --prefix dosfstools}/sbin/mkfs.fat
+	MCOPY = ${shell brew --prefix mtools}/bin/mcopy
+endif
+
 BUILD_DIR = build
 QEMU = qemu-system-x86_64
 
@@ -11,10 +21,10 @@ KERNEL_BUILD_MODE = release
 ${DISK_IMAGE}: prepare ${BOOTLOADER} ${KERNEL}
 	dd if=/dev/zero of=${DISK_IMAGE} bs=1M count=10
 # reserve 64 sectors x 512 bytes
-	mkfs.fat -R 64 ${DISK_IMAGE}
+	${MKFS_FAT} -R 64 ${DISK_IMAGE}
 	dd if=${BOOTLOADER} of=$@ conv=notrunc
-	mcopy -i $@ ${KERNEL} "::"
-	mcopy -i $@ ./cfg/* "::"
+	${MCOPY} -i $@ ${KERNEL} "::"
+	${MCOPY} -i $@ ./cfg/* "::"
 
 ${BOOTLOADER}: always
 	make -C boot

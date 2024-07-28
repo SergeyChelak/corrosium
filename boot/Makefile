@@ -1,3 +1,11 @@
+UNAME = ${shell uname}
+ifeq (${UNAME}, Darwin)
+	OBJCOPY = ${shell brew --prefix binutils}/bin/objcopy	
+endif
+ifeq (${UNAME}, Linux)
+	OBJCOPY = objcopy	
+endif
+
 BUILD_DIR = build
 BUILD_MODE = release
 QEMU = qemu-system-x86_64
@@ -24,10 +32,10 @@ ${STAGE2_ELF}: always
 	cargo build --${BUILD_MODE} --target=x86_32.json --package=stage2
 
 ${STAGE1}: ${STAGE1_ELF} setup
-	objcopy -I elf32-i386 -O binary ${STAGE1_ELF} $@
+	${OBJCOPY} -I elf32-i386 -O binary ${STAGE1_ELF} $@
 
 ${STAGE2}: ${STAGE2_ELF} setup	
-	objcopy -I elf32-i386 -O binary ${STAGE2_ELF} $@
+	${OBJCOPY} -I elf32-i386 -O binary ${STAGE2_ELF} $@
 
 setup: always
 	mkdir -p ${BUILD_DIR}
