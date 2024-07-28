@@ -2,12 +2,14 @@
 #![no_main]
 
 use fat::DirectoryEntry;
+use utils::checksum;
 
 mod asm86;
 mod ata;
 mod debug;
 mod fat;
 mod text_buffer;
+mod utils;
 
 const KERNEL_FILE_NAME: [u8; 11] = [
     b'K', b'E', b'R', b'N', b'E', b'L', b' ', b' ', b'B', b'I', b'N',
@@ -17,8 +19,12 @@ const KERNEL_TARGET_ADDR: usize = 0x100_000;
 #[no_mangle]
 #[link_section = ".start"]
 pub extern "C" fn _stage2() -> ! {
+    main()
+}
+
+fn main() -> ! {
     text_buffer::clear();
-    // println!("[stage 2] protected mode");
+    println!("[stage 2] protected mode");
     let result = fat::FAT::new();
     let Ok(fat) = result else {
         handle_error(result.err().unwrap())
@@ -27,11 +33,15 @@ pub extern "C" fn _stage2() -> ! {
     let Some(entry) = kernel_entry(&fat) else {
         panic!("kernel not found");
     };
-    // debug::print_entry(&entry);
+
+    debug::print_entry(&entry);
     fat.load_entry(&entry, KERNEL_TARGET_ADDR);
-    // println!("kernel loaded");
-    // dump_memory(KERNEL_TARGET_ADDR, 20);
-    asm86::jump(KERNEL_TARGET_ADDR);
+    // debug::dump_memory(KERNEL_TARGET_ADDR, 20);
+    let checksum = checksum(KERNEL_TARGET_ADDR, entry.file_size as usize);
+    println!("Checksum {}", checksum);
+    /*
+    // asm86::jump(KERNEL_TARGET_ADDR);
+     */
     halt()
 }
 

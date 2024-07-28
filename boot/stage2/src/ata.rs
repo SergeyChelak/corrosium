@@ -12,24 +12,14 @@ const REG_LBA_HIGH: u16 = 5; // LBA high
 const REG_DRIVE: u16 = 6; // select drive
 const REG_CMD_STAT: u16 = 7; // command/status
 
-extern "C" {
-    #[link_name = "_disk_buffer"]
-    static disk_buffer: usize;
-}
-
-pub fn load_into_buffer(lba: usize, sectors: u8) -> *const usize {
-    let addr: *const usize = unsafe { &disk_buffer };
-    load(lba, sectors, addr);
-    addr
-}
-
-pub fn load(lba: usize, sectors: u8, target: *const usize) {
+pub fn load(lba: usize, sectors: u8, target: *mut usize) {
     ata_load(PRIMARY_DRIVE, lba, sectors, target)
 }
 
-fn ata_load(drive_port: u16, lba: usize, sectors: u8, target: *const usize) {
+#[inline(never)]
+fn ata_load(drive_port: u16, lba: usize, sectors: u8, target: *mut usize) {
     unsafe {
-        asm!("mov edi, {0}", in(reg) target);
+        asm!("pusha", "mov edi, {0}", in(reg) target);
     }
     // highest 8 bit of LBA | master
     out_b(drive_port + REG_DRIVE, (lba >> 24 & 0xff) as u8 | 0xe0);
@@ -57,8 +47,10 @@ fn ata_load(drive_port: u16, lba: usize, sectors: u8, target: *const usize) {
             )
         }
     }
+    unsafe { asm!("popa") };
 }
 
+#[inline]
 fn io_delay(times: u32) {
     (0..times).for_each(|_| out_b(0x80, 0))
 }

@@ -23,11 +23,4 @@ SECTIONS {
     .bss : ALIGN(4096) {
         *(.bss .bss.*)
     }
-
-    _disk_buffer = .;
-    . = _disk_buffer + 512;
-    _fat_table = .;
-    . = _fat_table + 20 * 512;
-
-    . = 0x7e00 + 63 * 512;
 }

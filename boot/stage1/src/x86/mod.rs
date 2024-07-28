@@ -33,7 +33,7 @@ pub fn protected_mode() {
             "mov ds, eax",
             "mov es, eax",
             "mov ss, eax",
-            "mov ebp, 0x200000",
+            "mov ebp, 0x7c00",
             "mov esp, ebp",
         )
     }

@@ -1,7 +1,6 @@
-mod entry;
-mod header;
+pub mod entry;
+pub mod header;
 
-use core::hint::black_box;
 use core::mem;
 use core::ptr::*;
 
@@ -12,11 +11,9 @@ use crate::ata;
 
 const SECTOR_SIZE: usize = 0x200;
 const FAT_TABLE_MAX_SECTORS: usize = 20;
+const FAT_TABLE_SIZE: usize = FAT_TABLE_MAX_SECTORS * SECTOR_SIZE;
 
-extern "C" {
-    #[link_name = "_fat_table"]
-    static fat_table: usize;
-}
+type FatTable = [u8; FAT_TABLE_SIZE];
 
 pub enum FatError {
     BadSectorSize(usize),
@@ -25,34 +22,17 @@ pub enum FatError {
 
 pub struct FAT {
     pub header: FatHeader,
-    pub table_address: *const usize,
+    pub table: FatTable,
 }
 
 impl FAT {
     pub fn new() -> Result<FAT, FatError> {
-        let addr = ata::load_into_buffer(0, 1);
-        let header: FatHeader = unsafe { read_volatile(addr as *const _) };
-        {
-            let sector_size = header.bytes_per_sector as usize;
-            if sector_size != SECTOR_SIZE {
-                return Err(FatError::BadSectorSize(sector_size));
-            }
-            let fat_size = header.sectors_per_fat as usize;
-            if fat_size > FAT_TABLE_MAX_SECTORS || fat_size == 0 {
-                return Err(FatError::BadFatSize(fat_size));
-            }
+        let header = load_header();
+        if let Err(error) = validate_header(&header) {
+            return Err(error);
         }
-        // load fat
-        let table_address: *const usize = unsafe { &fat_table };
-        ata::load(
-            header.reserved_sectors_count as usize,
-            header.sectors_per_fat as u8,
-            table_address,
-        );
-        Ok(Self {
-            header,
-            table_address,
-        })
+        let table = load_fat(&header);
+        Ok(Self { header, table })
     }
 
     pub fn find_root_entry(
@@ -64,8 +44,10 @@ impl FAT {
         let mut lba = self.header.root_directory_start_sector() as usize;
         let mut items = 0;
         let entries = self.header.root_directory_entries as usize;
+        let buffer = [0u8; SECTOR_SIZE];
+        let buffer_addr = addr_of!(buffer) as *mut _;
         while items < entries {
-            let buffer_addr = ata::load_into_buffer(lba, 1);
+            ata::load(lba, 1, buffer_addr);
             for i in 0..entries_per_sector {
                 let addr = buffer_addr as usize + entry_size * i;
                 let entry: DirectoryEntry = unsafe { read_volatile(addr as *const _) };
@@ -83,30 +65,49 @@ impl FAT {
     }
 
     pub fn load_entry(&self, entry: &DirectoryEntry, target: usize) {
-        let sector_size = self.header.sectors_per_cluster as usize;
+        let cluster_size = self.header.sectors_per_cluster as usize;
         let lba_data_region = self.header.data_region_start_sector() as usize;
-        let mut current_cluster = entry.get_start_cluster() as usize;
+        let mut cluster = entry.get_start_cluster() as usize;
         let mut addr = target;
-        loop {
+        let mut is_terminal_cluster = false;
+        while !is_terminal_cluster {
+            let index = cluster * 2;
+            is_terminal_cluster = self.table[index] == 0xff && self.table[index + 1] == 0xff;
             // first two clusters are reserved
-            let lba = lba_data_region + (current_cluster - 2) * sector_size;
-            ata::load(lba, self.header.sectors_per_cluster, addr as *const _);
-            if self.is_terminal_cluster(current_cluster) {
-                break;
-            }
-            addr += sector_size * SECTOR_SIZE;
-            current_cluster += 1;
+            let lba = lba_data_region + (cluster - 2) * cluster_size;
+            ata::load(lba, cluster_size as u8, addr as *mut _);
+            addr += cluster_size * SECTOR_SIZE;
+            cluster += 1;
         }
     }
+}
 
-    fn is_terminal_cluster(&self, cluster: usize) -> bool {
-        let position = self.table_address as usize + 2 * cluster;
-        let marker = unsafe {
-            black_box(
-                (read(position as *const u8) as u16) << 8
-                    | read((position + 1) as *const u8) as u16,
-            )
-        };
-        marker == 0xffff
+fn load_header() -> FatHeader {
+    let buffer = [0u8; SECTOR_SIZE];
+    let buffer_addr = addr_of!(buffer) as *mut usize;
+    ata::load(0, 1, buffer_addr);
+    unsafe { core::ptr::read_volatile(buffer_addr as *const _) }
+}
+
+fn validate_header(header: &FatHeader) -> Result<(), FatError> {
+    let sector_size = header.bytes_per_sector as usize;
+    if sector_size != SECTOR_SIZE {
+        return Err(FatError::BadSectorSize(sector_size));
     }
+    let fat_size = header.sectors_per_fat as usize;
+    if fat_size > FAT_TABLE_MAX_SECTORS || fat_size == 0 {
+        return Err(FatError::BadFatSize(fat_size));
+    }
+    return Ok(());
+}
+
+fn load_fat(header: &FatHeader) -> FatTable {
+    let fat = [0u8; FAT_TABLE_SIZE];
+    let fat_addr = addr_of!(fat) as *mut usize;
+    ata::load(
+        header.reserved_sectors_count as usize,
+        header.sectors_per_fat as u8,
+        fat_addr,
+    );
+    fat
 }
