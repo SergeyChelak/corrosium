@@ -17,7 +17,7 @@ pub fn halt() -> ! {
     }
 }
 
-pub fn jump(address: u16) {
+pub fn jump(address: usize) {
     unsafe {
         asm!("jmp {0:x}", in(reg) address);
     }

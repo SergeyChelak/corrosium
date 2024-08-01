@@ -18,7 +18,7 @@ pub fn print(message: &str) {
     }
 }
 
-pub fn read_sectors(disk: u8, from: u8, sectors: u8, target: u16) {
+pub fn read_sectors(disk: u8, from: u8, sectors: u8, target: usize) {
     unsafe {
         asm!(
             "mov ah, 0x2",              // read sector command

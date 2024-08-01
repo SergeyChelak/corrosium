@@ -15,12 +15,12 @@ const MAX_NEXT_STAGE_SECTORS: u8 = 63;
 
 global_asm!(include_str!("main.asm"));
 
-fn next_stage() -> u16 {
+fn next_stage() -> usize {
     extern "C" {
         #[link_name = "_next_stage"]
-        static next_stage: u16;
+        static next_stage: usize;
     }
-    unsafe { addr_of!(next_stage) as u16 }
+    addr_of!(next_stage) as usize
 }
 
 #[no_mangle]
