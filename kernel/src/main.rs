@@ -2,9 +2,8 @@
 #![no_main]
 #![feature(abi_x86_interrupt)]
 
-use x86::{insb, insw, outb, outw};
-
 mod idt;
+mod pic;
 mod vga_text;
 mod x86;
 
@@ -16,26 +15,10 @@ pub extern "C" fn kernel_main() -> ! {
 
 fn main() -> ! {
     setup_registers();
-    print_intro();
+    pic::remap();
     setup_interrupts();
-    ports();
+    print_intro();
     system_halt()
-}
-
-fn ports() {
-    let port = 0x60;
-
-    let initial = insb(port);
-    outb(port, 0x1);
-    let val = insb(port);
-    println!("BYTE: initial {:b}, updated {:b}", initial, val);
-
-    outw(port, 3);
-    let initial = insw(port);
-    outw(port, 500);
-    let val = insw(port);
-    println!("WORD: initial {:}, updated {:}", initial, val);
-
 }
 
 fn setup_registers() {
@@ -62,7 +45,14 @@ fn print_intro() {
 fn setup_interrupts() {
     use idt::*;
     idt_init();
+    (0x20..0x28).for_each(|i| {
+        idt_add(i, master_no_interrupt_handler as *const usize);
+    });
+    (0x28..0x30).for_each(|i| {
+        idt_add(i, slave_no_interrupt_handler as *const usize);
+    });
     idt_add(0, div_by_zero_handler as *const usize);
+    idt_add(0x21, interrupt_handler as *const usize);
     idt_load();
     unsafe { core::arch::asm!("sti") }
 }
@@ -75,20 +65,25 @@ fn panic(info: &core::panic::PanicInfo) -> ! {
 
 fn system_halt() -> ! {
     println!("halt system");
-    x86::cli();
+    // x86::cli();
     loop {
         x86::hlt();
     }
 }
 
-static mut CALL_COUNT: usize = 0;
-
 extern "x86-interrupt" fn div_by_zero_handler() {
-    unsafe {
-        if CALL_COUNT > 5 {
-            return;
-        }
-        CALL_COUNT += 1;
-        println!("int 0: divide by zero, called {} times", CALL_COUNT);
-    }
+    println!("int 0: divide by zero");
+}
+
+extern "x86-interrupt" fn interrupt_handler() {
+    println!("key pressed");
+    pic::send_eoi(0);
+}
+
+extern "x86-interrupt" fn master_no_interrupt_handler() {
+    pic::send_eoi(0);
+}
+
+extern "x86-interrupt" fn slave_no_interrupt_handler() {
+    pic::send_eoi(8);
 }
