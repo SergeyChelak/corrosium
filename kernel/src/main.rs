@@ -2,6 +2,8 @@
 #![no_main]
 #![feature(abi_x86_interrupt)]
 
+use x86::{insb, insw, outb, outw};
+
 mod idt;
 mod vga_text;
 mod x86;
@@ -16,8 +18,24 @@ fn main() -> ! {
     setup_registers();
     print_intro();
     setup_interrupts();
-    throw_error();
+    ports();
     system_halt()
+}
+
+fn ports() {
+    let port = 0x60;
+
+    let initial = insb(port);
+    outb(port, 0x1);
+    let val = insb(port);
+    println!("BYTE: initial {:b}, updated {:b}", initial, val);
+
+    outw(port, 3);
+    let initial = insw(port);
+    outw(port, 500);
+    let val = insw(port);
+    println!("WORD: initial {:}, updated {:}", initial, val);
+
 }
 
 fn setup_registers() {
@@ -47,18 +65,6 @@ fn setup_interrupts() {
     idt_add(0, div_by_zero_handler as *const usize);
     idt_load();
     unsafe { core::arch::asm!("sti") }
-}
-
-fn throw_error() {
-    println!("try to throw interrupt...");
-    unsafe { core::arch::asm!("int 0") }
-    // unsafe { core::arch::asm!("mov eax, 0", "div eax") }
-    // {
-    //     let mut x = 10;
-    //     let y = x / x;
-    //     x /= y - 1;
-    //     println!("x = {x}");
-    // }
 }
 
 #[panic_handler]
