@@ -1,4 +1,6 @@
-use crate::{fat::*, print, println};
+use vga_buffer::*;
+
+use crate::fat::*;
 
 #[allow(dead_code)]
 pub fn print_header_info(header: &FatHeader) {

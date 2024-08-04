@@ -1,13 +1,5 @@
 use core::arch::asm;
 
-pub fn cli() {
-    unsafe { asm!("cli") }
-}
-
-pub fn hlt() {
-    unsafe { asm!("hlt") }
-}
-
 pub type PortAddress = u16;
 
 /// read one byte from the given port

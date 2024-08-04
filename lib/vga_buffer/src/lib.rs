@@ -1,10 +1,10 @@
+#![no_std]
 use core::fmt;
 
 const VGA_TEXT_MEMORY: usize = 0xb8000;
 const VGA_TEXT_HEIGHT: usize = 25;
 const VGA_TEXT_WIDTH: usize = 80;
 
-#[allow(dead_code)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
 pub enum Color {
@@ -122,7 +122,7 @@ static mut TERMINAL_WRITER: TerminalWriter = TerminalWriter {
 
 #[macro_export]
 macro_rules! print {
-    ($($arg:tt)*) => ($crate::vga_text::_print(format_args!($($arg)*)));
+    ($($arg:tt)*) => ($crate::_print(format_args!($($arg)*)));
 }
 
 #[macro_export]

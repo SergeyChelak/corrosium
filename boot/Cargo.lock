@@ -3,9 +3,26 @@
 version = 3
 
 [[package]]
+name = "arch_x86"
+version = "0.1.0"
+
+[[package]]
+name = "gp_utils"
+version = "0.1.0"
+
+[[package]]
 name = "stage1"
 version = "0.1.0"
 
 [[package]]
 name = "stage2"
+version = "0.1.0"
+dependencies = [
+ "arch_x86",
+ "gp_utils",
+ "vga_buffer",
+]
+
+[[package]]
+name = "vga_buffer"
 version = "0.1.0"

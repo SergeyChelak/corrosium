@@ -4,3 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+
+arch_x86 = { path = "../lib/arch_x86" }
+# vga buffer is deprecated but it's ok to use it at early dev stages
+vga_buffer = { path = "../lib/vga_buffer" }

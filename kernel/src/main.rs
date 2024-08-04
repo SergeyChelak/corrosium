@@ -2,10 +2,10 @@
 #![no_main]
 #![feature(abi_x86_interrupt)]
 
+use vga_buffer::*;
+
 mod idt;
 mod pic;
-mod vga_text;
-mod x86;
 
 #[no_mangle]
 #[link_section = ".text"]
@@ -54,7 +54,7 @@ fn setup_interrupts() {
     idt_add(0, div_by_zero_handler as *const usize);
     idt_add(0x21, interrupt_handler as *const usize);
     idt_load();
-    unsafe { core::arch::asm!("sti") }
+    arch_x86::sti();
 }
 
 #[panic_handler]
@@ -65,9 +65,10 @@ fn panic(info: &core::panic::PanicInfo) -> ! {
 
 fn system_halt() -> ! {
     println!("halt system");
-    // x86::cli();
+    use arch_x86::*;
+    // spin_forever()
     loop {
-        x86::hlt();
+        hlt();
     }
 }
 

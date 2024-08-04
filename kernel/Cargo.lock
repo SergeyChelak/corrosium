@@ -3,5 +3,17 @@
 version = 3
 
 [[package]]
+name = "arch_x86"
+version = "0.1.0"
+
+[[package]]
 name = "kernel"
+version = "0.1.0"
+dependencies = [
+ "arch_x86",
+ "vga_buffer",
+]
+
+[[package]]
+name = "vga_buffer"
 version = "0.1.0"

@@ -1,14 +1,14 @@
 /// 8259 PIC
-use crate::x86::{self, inb, io_wait, outb};
+use arch_x86::{self, inb, io_wait, outb, PortAddress};
 
 /// IO base address for master PIC
-const PIC1: x86::PortAddress = 0x20;
+const PIC1: PortAddress = 0x20;
 /// IO base address for slave PIC
-const PIC2: x86::PortAddress = 0xA0;
-const PIC1_COMMAND: x86::PortAddress = PIC1;
-const PIC1_DATA: x86::PortAddress = PIC1 + 1;
-const PIC2_COMMAND: x86::PortAddress = PIC2;
-const PIC2_DATA: x86::PortAddress = PIC2 + 1;
+const PIC2: PortAddress = 0xA0;
+const PIC1_COMMAND: PortAddress = PIC1;
+const PIC1_DATA: PortAddress = PIC1 + 1;
+const PIC2_COMMAND: PortAddress = PIC2;
+const PIC2_DATA: PortAddress = PIC2 + 1;
 
 // Indicates that ICW4 will be present
 const ICW1_ICW4: u8 = 0x01;

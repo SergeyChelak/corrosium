@@ -1,14 +1,15 @@
 #![no_std]
 #![no_main]
 
+use arch_x86::{jump, spin_forever};
 use fat::DirectoryEntry;
 use utils::checksum;
+use vga_buffer::{clear, println};
 
-mod asm86;
 mod ata;
 mod debug;
 mod fat;
-mod text_buffer;
+// mod text_buffer;
 mod utils;
 
 const KERNEL_FILE_NAME: [u8; 11] = [
@@ -23,7 +24,7 @@ pub extern "C" fn _stage2() -> ! {
 }
 
 fn main() -> ! {
-    text_buffer::clear();
+    clear();
     println!("[stage 2] protected mode");
     let result = fat::FAT::new();
     let Ok(fat) = result else {
@@ -39,7 +40,7 @@ fn main() -> ! {
     // debug::dump_memory(KERNEL_TARGET_ADDR, 20);
     let checksum = checksum(KERNEL_TARGET_ADDR, entry.file_size as usize);
     println!("Checksum {}", checksum);
-    asm86::jump(KERNEL_TARGET_ADDR);
+    jump(KERNEL_TARGET_ADDR);
     halt()
 }
 
@@ -71,8 +72,5 @@ fn panic(info: &core::panic::PanicInfo) -> ! {
 
 fn halt() -> ! {
     println!("[Halted]");
-    asm86::cli();
-    loop {
-        asm86::hlt()
-    }
+    spin_forever()
 }
