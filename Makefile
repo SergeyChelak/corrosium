@@ -10,7 +10,7 @@ ifeq (${UNAME}, Darwin)
 endif
 
 BUILD_DIR = build
-QEMU = qemu-system-x86_64
+QEMU = qemu-system-i386
 
 DISK_IMAGE = ${BUILD_DIR}/corrosium.iso
 BOOTLOADER = ${BUILD_DIR}/bootloader.bin
