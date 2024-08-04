@@ -8,10 +8,10 @@ pub fn hlt() {
     unsafe { asm!("hlt") }
 }
 
-pub type PortNumber = u16;
+pub type PortAddress = u16;
 
 /// read one byte from the given port
-pub fn inb(port: PortNumber) -> u8 {
+pub fn inb(port: PortAddress) -> u8 {
     let value: u8;
     unsafe {
         asm!(
@@ -24,7 +24,7 @@ pub fn inb(port: PortNumber) -> u8 {
 }
 
 /// read word from given port
-pub fn inw(port: PortNumber) -> u16 {
+pub fn inw(port: PortAddress) -> u16 {
     let value: u16;
     unsafe {
         asm!(
@@ -36,7 +36,7 @@ pub fn inw(port: PortNumber) -> u16 {
     value
 }
 
-pub fn outb(port: PortNumber, value: u8) {
+pub fn outb(port: PortAddress, value: u8) {
     unsafe {
         asm!(
             "out dx, al",
@@ -46,7 +46,7 @@ pub fn outb(port: PortNumber, value: u8) {
     }
 }
 
-pub fn outw(port: PortNumber, value: u16) {
+pub fn outw(port: PortAddress, value: u16) {
     unsafe {
         asm!(
             "out dx, ax",
