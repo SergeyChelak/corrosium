@@ -3,14 +3,11 @@
 
 use arch_x86::{jump, spin_forever};
 use fat::DirectoryEntry;
-use utils::checksum;
 use vga_buffer::{clear, println};
 
 mod ata;
 mod debug;
 mod fat;
-// mod text_buffer;
-mod utils;
 
 const KERNEL_FILE_NAME: [u8; 11] = [
     b'K', b'E', b'R', b'N', b'E', b'L', b' ', b' ', b'B', b'I', b'N',
@@ -62,6 +59,16 @@ fn kernel_entry(fat: &fat::FAT) -> Option<DirectoryEntry> {
             .all(|(a, b)| *a == *b)
     };
     fat.find_root_entry(predicate)
+}
+
+fn checksum(address: usize, count: usize) -> u32 {
+    let mut sum = 0;
+    for i in 0..count {
+        let addr = address + i;
+        let byte: u8 = unsafe { core::ptr::read(addr as *const _) };
+        sum = gp_utils::sum_mod(sum, byte as u32, u32::MAX);
+    }
+    sum
 }
 
 #[panic_handler]
