@@ -42,7 +42,7 @@ impl<T: AllocationMap> BlockAllocationTable<T> {
         block
     }
 
-    fn mark_allocated(&mut self, position: usize, count: usize) -> bool {
+    fn mark_allocated(&self, position: usize, count: usize) -> bool {
         if count == 0 {
             return false;
         }
@@ -66,7 +66,7 @@ impl<T: AllocationMap> BlockAllocationTable<T> {
         true
     }
 
-    pub fn allocate(&mut self, count: usize) -> Option<usize> {
+    pub fn allocate(&self, count: usize) -> Option<usize> {
         let position = self.find_position(count)?;
         if self.mark_allocated(position, count) {
             return Some(position);
@@ -74,7 +74,7 @@ impl<T: AllocationMap> BlockAllocationTable<T> {
         None
     }
 
-    pub fn deallocate(&mut self, position: usize) -> bool {
+    pub fn deallocate(&self, position: usize) -> bool {
         let Some(value) = self.alloc_map.get(position) else {
             return false;
         };

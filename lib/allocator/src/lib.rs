@@ -1,2 +1,3 @@
 #![no_std]
-mod block_allocator;
+pub mod block_allocator;
+pub use block_allocator::BlockAllocator;
