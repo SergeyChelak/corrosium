@@ -23,7 +23,7 @@ impl<T: AllocationMap> BlockAllocationTable<T> {
         let size = self.entries();
         for index in 0..size {
             let value = self.alloc_map.get(index)?;
-            if !is_free(*value) {
+            if !is_free(value) {
                 block = None;
                 len = 0;
                 continue;
@@ -75,7 +75,7 @@ impl<T: AllocationMap> BlockAllocationTable<T> {
     }
 
     pub fn deallocate(&mut self, position: usize) -> bool {
-        let Some(&value) = self.alloc_map.get(position) else {
+        let Some(value) = self.alloc_map.get(position) else {
             return false;
         };
         // prevent an attempt to release block from arbitrary position
@@ -84,7 +84,7 @@ impl<T: AllocationMap> BlockAllocationTable<T> {
         }
         let mut idx = position;
         loop {
-            let Some(&value) = self.alloc_map.get(idx) else {
+            let Some(value) = self.alloc_map.get(idx) else {
                 break;
             };
             self.alloc_map.set(idx, TABLE_ENTRY_DEFAULT_VALUE);
