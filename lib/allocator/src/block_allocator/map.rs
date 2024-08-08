@@ -3,8 +3,8 @@ use core::ptr::{read_volatile, write_volatile};
 use super::AllocationMap;
 
 pub struct AreaAllocationMap {
-    pointer: *mut u8,
-    size: usize,
+    pub pointer: *mut u8,
+    pub size: usize,
 }
 
 impl AreaAllocationMap {

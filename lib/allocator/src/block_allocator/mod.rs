@@ -3,6 +3,8 @@ mod map;
 mod table;
 
 pub use allocator::BlockAllocator;
+pub use map::AreaAllocationMap;
+pub use table::BlockAllocationTable;
 
 pub const TABLE_ENTRY_DEFAULT_VALUE: u8 = 0;
 

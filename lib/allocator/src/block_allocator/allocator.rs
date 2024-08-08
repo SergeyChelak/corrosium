@@ -3,9 +3,9 @@ use core::{alloc::GlobalAlloc, ptr::null_mut};
 use super::{table::BlockAllocationTable, AllocationMap};
 
 pub struct BlockAllocator<T: AllocationMap> {
-    table: BlockAllocationTable<T>,
-    block_size: usize,
-    pointer: *mut u8,
+    pub table: BlockAllocationTable<T>,
+    pub block_size: usize,
+    pub pointer: *mut u8,
     // size: usize,
 }
 
@@ -59,3 +59,5 @@ unsafe impl<T: AllocationMap> GlobalAlloc for BlockAllocator<T> {
         _ = self.table.deallocate(position);
     }
 }
+
+unsafe impl<T: AllocationMap> Sync for BlockAllocator<T> {}

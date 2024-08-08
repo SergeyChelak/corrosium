@@ -5,7 +5,7 @@ const TABLE_ENTRY_FLAG_IS_FIRST: u8 = 1 << 1;
 const TABLE_ENTRY_FLAG_HAS_NEXT: u8 = 1 << 2;
 
 pub struct BlockAllocationTable<T: AllocationMap> {
-    alloc_map: T,
+    pub alloc_map: T,
 }
 
 impl<T: AllocationMap> BlockAllocationTable<T> {
