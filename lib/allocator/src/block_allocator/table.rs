@@ -13,14 +13,14 @@ impl<T: AllocationMap> BlockAllocationTable<T> {
         Self { alloc_map }
     }
 
-    fn entries(&self) -> usize {
+    pub fn size(&self) -> usize {
         self.alloc_map.size()
     }
 
     fn find_position(&self, count: usize) -> Option<usize> {
         let mut block: Option<usize> = None;
         let mut len = 0usize;
-        let size = self.entries();
+        let size = self.size();
         for index in 0..size {
             let value = self.alloc_map.get(index)?;
             if !is_free(value) {
@@ -46,7 +46,7 @@ impl<T: AllocationMap> BlockAllocationTable<T> {
         if count == 0 {
             return false;
         }
-        let size = self.entries();
+        let size = self.size();
         if position + count > size {
             return false;
         }

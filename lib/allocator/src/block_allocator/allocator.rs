@@ -6,7 +6,6 @@ pub struct BlockAllocator<T: AllocationMap> {
     pub table: BlockAllocationTable<T>,
     pub block_size: usize,
     pub pointer: *mut u8,
-    // size: usize,
 }
 
 impl<T: AllocationMap> BlockAllocator<T> {
@@ -29,7 +28,7 @@ impl<T: AllocationMap> BlockAllocator<T> {
     fn address_to_position(&self, ptr: *const u8) -> Option<usize> {
         let base = self.pointer as usize;
         let address = ptr as usize;
-        if !(base..base + self.block_size).contains(&address) {
+        if !(base..base + self.block_size * self.blocks_count()).contains(&address) {
             return None;
         }
         Some((address - base) / self.block_size)
@@ -38,6 +37,10 @@ impl<T: AllocationMap> BlockAllocator<T> {
     fn position_to_address(&self, position: usize) -> *mut u8 {
         let offset = position * self.block_size;
         unsafe { self.pointer.offset(offset as isize) }
+    }
+
+    fn blocks_count(&self) -> usize {
+        self.table.size()
     }
 }
 
