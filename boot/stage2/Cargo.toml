@@ -1,9 +1,0 @@
-[package]
-name = "stage2"
-version = "0.1.0"
-edition = "2021"
-
-[dependencies]
-arch_x86 = { path = "../../lib/arch_x86" }
-vga_buffer = { path = "../../lib/vga_buffer" }
-gp_utils = { path = "../../lib/gp_utils" }

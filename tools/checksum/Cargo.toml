@@ -1,7 +1,0 @@
-[package]
-name = "checksum"
-version = "0.1.0"
-edition = "2021"
-
-[dependencies]
-gp_utils = { path = "../../lib/gp_utils" }
