@@ -3,19 +3,15 @@
 use core::hint::black_box;
 
 use bootinfo::*;
-use log::{debug, error, info};
+use log::{error, info};
 use uefi::{
     boot::ScopedProtocol,
     prelude::*,
-    proto::{
-        console::gop::{GraphicsOutput, PixelFormat},
-        device_path::hardware,
-    },
+    proto::console::gop::{GraphicsOutput, PixelFormat},
     table::cfg::ConfigTableEntry,
 };
 
 mod config_table_holder;
-use config_table_holder::*;
 
 // TODO: load from config file
 const GRAPHICS_WIDTH: usize = 1920;
@@ -63,8 +59,6 @@ fn main() -> Status {
         error!("Failed to setup graphics mode");
     }
 
-    draw_square();
-
     info!("Press any key...");
     wait_for_key();
 
@@ -99,35 +93,25 @@ fn frame_buffer(target_width: usize, target_height: usize) -> uefi::Result<Frame
     // TODO: provide pixel format
 
     let (width, height) = mode.info().resolution();
-    let frame_buffer = FrameBuffer { width, height };
-    Ok(frame_buffer)
-}
-
-fn draw_square() {
-    let mut gfx = get_gfx_protocol().unwrap();
-
-    let mode_info = gfx.current_mode_info();
-
-    // Lets draw a 2x2 square on the screen
-    let top = 100 * mode_info.stride();
-    let left = 100;
-    let mut fb = gfx.frame_buffer();
-    const WHITE_PIXEL: [u8; 3] = [0xffu8, 0xffu8, 0xffu8];
-    unsafe {
-        for i in 0..100 {
-            // Draw the pixels of the top side
-            fb.write_value((top + left + i) * 4, WHITE_PIXEL);
-
-            // Draw the pixels of the left vertical side
-            fb.write_value((top + left + i * mode_info.stride()) * 4, WHITE_PIXEL);
-
-            // Draw the pixels of the bottom side
-            fb.write_value((top + left + 100 * mode_info.stride() + i) * 4, WHITE_PIXEL);
-
-            // Draw the pixels of the right vertical side
-            fb.write_value((top + left + i * mode_info.stride() + 100) * 4, WHITE_PIXEL);
-        }
+    let stride = mode.info().stride();
+    let mut fb = protocol.frame_buffer();
+    let base_address = fb.as_mut_ptr() as *mut core::ffi::c_void;
+    let size = fb.size();
+    let pixel_format = match mode.info().pixel_format() {
+        PixelFormat::Rgb => bootinfo::PixelFormat::RGB,
+        PixelFormat::Bgr => bootinfo::PixelFormat::BGR,
+        _ => return Err(uefi::Status::UNSUPPORTED.into()),
     };
+
+    let frame_buffer = FrameBuffer {
+        width,
+        height,
+        stride,
+        base_address,
+        size,
+        pixel_format,
+    };
+    Ok(frame_buffer)
 }
 
 fn get_gfx_protocol() -> uefi::Result<ScopedProtocol<GraphicsOutput>> {
