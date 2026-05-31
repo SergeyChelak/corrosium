@@ -2,3 +2,6 @@
 **/target
 **/build
 **/.DS_Store
+**/.env
+**/build-os
+flake.lock
