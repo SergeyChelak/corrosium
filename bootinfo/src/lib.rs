@@ -6,7 +6,7 @@ use core::ffi::c_void;
 pub struct BootInfo {
     pub acpi: Option<ConfigTable>,
     pub smbios: Option<ConfigTable>,
-    // pub frame_buffer: FrameBuffer,
+    pub frame_buffer: Option<FrameBuffer>,
 }
 
 #[repr(C)]
@@ -38,5 +38,14 @@ impl BootInfo {
     }
 }
 
+#[repr(C)]
+pub struct FrameBuffer {
+    pub width: usize,
+    pub height: usize,
+}
+
 // #[repr(C)]
-// pub struct FrameBuffer {}
+// pub enum PixelFormat {
+//     RGB,
+//     BGR,
+// }
