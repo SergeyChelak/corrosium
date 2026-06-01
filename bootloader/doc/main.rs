@@ -28,7 +28,7 @@ fn main() -> Status {
     }
     info!("UEFI App");
     load_kernel();
-    // memory_map()ex;
+    // memory_map();
     info!("Press any key...");
     wait_for_key();
     Status::SUCCESS

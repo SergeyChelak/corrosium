@@ -2,10 +2,11 @@
 #![no_main]
 use core::hint::black_box;
 
-use bootinfo::*;
+use bootinfo::{MemoryMapInfo, *};
 use log::{error, info};
 use uefi::{
-    boot::ScopedProtocol,
+    boot::{MemoryType, ScopedProtocol},
+    mem::memory_map::{self, MemoryMap},
     prelude::*,
     proto::console::gop::{GraphicsOutput, PixelFormat},
     table::cfg::ConfigTableEntry,
@@ -48,16 +49,47 @@ fn main() -> Status {
         }
     });
 
-    if let Ok(fb) = frame_buffer(GRAPHICS_WIDTH, GRAPHICS_HEIGHT) {
-        boot_info.frame_buffer = Some(fb);
-    } else {
-        error!("Failed to setup graphics mode");
-    }
+    // if let Ok(fb) = frame_buffer(GRAPHICS_WIDTH, GRAPHICS_HEIGHT) {
+    //     boot_info.frame_buffer = Some(fb);
+    // } else {
+    //     error!("Failed to setup graphics mode");
+    // }
+    //
+    _ = memory_map();
 
     info!("Press any key...");
     wait_for_key();
 
     Status::SUCCESS
+}
+
+fn memory_map() -> uefi::Result<MemoryMapInfo> {
+    let memory_map_owned = uefi::boot::memory_map(MemoryType::LOADER_DATA)?;
+
+    // reserve extra 5 entries for the memory map header
+    let count = 5 + memory_map_owned.entries().count();
+    let size = count * core::mem::size_of::<MemoryMapEntry>();
+
+    let buffer = boot::allocate_pool(MemoryType::LOADER_DATA, size)?;
+
+    let memory_map_ptr = buffer.as_ptr() as *mut MemoryMapEntry;
+    let memory_map_slice =
+        unsafe { core::slice::from_raw_parts_mut::<MemoryMapEntry>(memory_map_ptr, count) };
+
+    for (entry, descriptor) in memory_map_slice.iter_mut().zip(memory_map_owned.entries()) {
+        // entry.att = descriptor.att as bootinfo::MemoryAttribute;
+        // entry.ty = descriptor.ty as bootinfo::MemoryType;
+        entry.phys_start = descriptor.phys_start;
+        entry.virt_start = descriptor.virt_start;
+        entry.page_count = descriptor.page_count;
+    }
+
+    let memory_map = bootinfo::MemoryMapInfo {
+        entries: memory_map_ptr,
+        count,
+    };
+
+    Ok(memory_map)
 }
 
 fn frame_buffer(target_width: usize, target_height: usize) -> uefi::Result<FrameBuffer> {
