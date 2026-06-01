@@ -5,4 +5,5 @@
 **/.env
 **/build-os
 **/out
+**/esp
 flake.lock
