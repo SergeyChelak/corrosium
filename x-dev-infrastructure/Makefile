@@ -38,6 +38,10 @@ clean-all: clean
 	$(MAKE) -C ../bootloader clean
 	$(MAKE) -C ../kernel clean
 
-clean-kernel: clean
+clean-bootloader:
+	rm -f $(BOOTLOADER)
+	$(MAKE) -C ../bootloader clean
+
+clean-kernel:
 	rm -f $(KERNEL)
 	$(MAKE) -C ../kernel clean

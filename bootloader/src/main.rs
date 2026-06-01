@@ -12,7 +12,7 @@ use uefi::{
         console::gop::{GraphicsOutput, PixelFormat},
         loaded_image::LoadedImage,
         media::{
-            file::{File, FileAttribute, FileMode},
+            file::{File, FileAttribute, FileInfo, FileMode},
             fs::SimpleFileSystem,
         },
     },
@@ -85,8 +85,22 @@ fn load_kernel() -> uefi::Result<()> {
     let mut dir = sfs.open_volume()?;
 
     let filename = cstr16!("\\kernel.elf");
-    let info = dir.open(filename, FileMode::Read, FileAttribute::empty())?;
-    info!("Kernel file info: {:?}", info);
+    let file_handle = dir.open(filename, FileMode::Read, FileAttribute::empty())?;
+
+    let mut file = match file_handle.into_regular_file() {
+        Some(f) => f,
+        None => return Err(uefi::Status::NOT_FOUND.into()),
+    };
+
+    // 2. Get the file size
+    // 128 bytes is generally more than enough for a standard FileInfo struct
+    let mut info_buf = [0u8; 128];
+    let info = file
+        .get_info::<FileInfo>(&mut info_buf)
+        .map_err(|_| uefi::Status::BUFFER_TOO_SMALL)?;
+    let file_size = info.file_size() as usize;
+
+    info!("Kernel size: {file_size}");
 
     Ok(())
 }
