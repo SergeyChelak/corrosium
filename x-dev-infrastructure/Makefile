@@ -1,7 +1,8 @@
 UNAME_S := $(shell uname -s)
 
 OUTPUT_DIR := esp/efi/boot
-BOOT_EFI := $(OUTPUT_DIR)/bootx64.efi
+BOOTLOADER := $(OUTPUT_DIR)/bootx64.efi
+KERNEL := esp/kernel.elf
 
 ifeq ($(UNAME_S), Linux)
     QEMU_ACCEL := -enable-kvm
@@ -10,16 +11,20 @@ ifeq ($(UNAME_S), Darwin)
     QEMU_ACCEL := -accel tcg
 endif
 
-.PHONY: run clean
+.PHONY: run clean clean-all
 
 $(OUTPUT_DIR):
 	mkdir -p $(OUTPUT_DIR)
 
-$(BOOT_EFI): $(OUTPUT_DIR)
+$(BOOTLOADER): $(OUTPUT_DIR)
 	$(MAKE) -C ../bootloader out/bootx64.efi
-	cp ../bootloader/out/bootx64.efi $(BOOT_EFI)
+	cp ../bootloader/out/bootx64.efi $(BOOTLOADER)
 
-run: $(BOOT_EFI)
+$(KERNEL):
+	$(MAKE) -C ../kernel out/kernel.elf
+	cp ../kernel/out/kernel.elf $(KERNEL)
+
+run: $(BOOTLOADER) $(KERNEL)
 	qemu-system-x86_64 $(QEMU_ACCEL) \
     -drive if=pflash,format=raw,readonly=on,file=OVMF_CODE.fd \
     -drive if=pflash,format=raw,readonly=on,file=OVMF_VARS.fd \
@@ -27,6 +32,12 @@ run: $(BOOT_EFI)
 
 clean:
 	rm -fr ${OUTPUT_DIR}
+	rm -f $(KERNEL)
 
 clean-all: clean
 	$(MAKE) -C ../bootloader clean
+	$(MAKE) -C ../kernel clean
+
+clean-kernel: clean
+    rm -f $(KERNEL)
+	$(MAKE) -C ../kernel clean
