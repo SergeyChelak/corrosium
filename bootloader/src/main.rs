@@ -5,13 +5,10 @@ use core::hint::black_box;
 use bootinfo::{MemoryMapInfo, *};
 use log::{error, info};
 use uefi::{
-    boot::{MemoryType, ScopedProtocol},
+    boot::MemoryType,
     mem::memory_map::MemoryMap,
     prelude::*,
-    proto::{
-        console::gop::{GraphicsOutput, PixelFormat},
-        device_path::build::acpi,
-    },
+    proto::console::gop::{GraphicsOutput, PixelFormat},
     table::cfg::ConfigTableEntry,
 };
 
@@ -38,22 +35,22 @@ fn main() -> Status {
         return Status::ABORTED;
     };
 
-    // let Ok(framebuffer) = frame_buffer(GRAPHICS_WIDTH, GRAPHICS_HEIGHT) else {
-    //     error!("Failed to setup graphics mode");
-    //     return Status::ABORTED;
-    // };
+    let Ok(framebuffer) = frame_buffer(GRAPHICS_WIDTH, GRAPHICS_HEIGHT) else {
+        error!("Failed to setup graphics mode");
+        return Status::ABORTED;
+    };
 
     let Ok(memory_map) = get_memory_map() else {
         error!("Failed to make memory map");
         return Status::ABORTED;
     };
 
-    // let boot_info = BootInfo {
-    //     acpi: acpi.0,
-    //     smbios: smbios.0,
-    //     framebuffer,
-    //     memory_map,
-    // };
+    let boot_info = BootInfo {
+        acpi: acpi.0,
+        smbios: smbios.0,
+        framebuffer,
+        memory_map,
+    };
 
     info!("Press any key...");
     wait_for_key();
@@ -123,7 +120,8 @@ fn get_memory_map() -> uefi::Result<MemoryMapInfo> {
 }
 
 fn frame_buffer(target_width: usize, target_height: usize) -> uefi::Result<FrameBuffer> {
-    let mut protocol = get_gfx_protocol()?;
+    let handle = uefi::boot::get_handle_for_protocol::<GraphicsOutput>()?;
+    let mut protocol = boot::open_protocol_exclusive::<GraphicsOutput>(handle)?;
 
     let Some(mode) = protocol
         .modes()
@@ -136,7 +134,7 @@ fn frame_buffer(target_width: usize, target_height: usize) -> uefi::Result<Frame
         })
         .map(|mode| {
             let (width, height) = mode.info().resolution();
-            let sqr_diff = width.abs_diff(target_width) * height.abs_diff(target_height);
+            let sqr_diff = width.abs_diff(target_width) + height.abs_diff(target_height);
             (mode, sqr_diff)
         })
         .min_by_key(|(_, sqr_diff)| *sqr_diff)
@@ -167,11 +165,6 @@ fn frame_buffer(target_width: usize, target_height: usize) -> uefi::Result<Frame
         pixel_format,
     };
     Ok(frame_buffer)
-}
-
-fn get_gfx_protocol() -> uefi::Result<ScopedProtocol<GraphicsOutput>> {
-    let handle = uefi::boot::get_handle_for_protocol::<GraphicsOutput>()?;
-    boot::open_protocol_exclusive::<GraphicsOutput>(handle)
 }
 
 fn acpi_config_table(entry: &ConfigTableEntry) -> Option<ConfigTable> {
