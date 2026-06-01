@@ -8,7 +8,10 @@ use uefi::{
     boot::{MemoryType, ScopedProtocol},
     mem::memory_map::MemoryMap,
     prelude::*,
-    proto::console::gop::{GraphicsOutput, PixelFormat},
+    proto::{
+        console::gop::{GraphicsOutput, PixelFormat},
+        device_path::build::acpi,
+    },
     table::cfg::ConfigTableEntry,
 };
 
@@ -30,32 +33,27 @@ fn main() -> Status {
         info!("Failed to disable watchdog timer: {:?}", e);
     }
 
-    let mut boot_info = BootInfo::default();
+    let Ok((acpi, smbios)) = get_rsdp() else {
+        error!("Failed to fetch APIC/SMBIOS tables");
+        return Status::ABORTED;
+    };
 
-    // Iterate across the Config Tables and enumerate them, displaying them to the log
-    uefi::system::with_config_table(|entry| {
-        for cfg in entry {
-            if let Some(acpi) = acpi_config_table(cfg) {
-                boot_info.set_acpi(acpi);
-                info!("Did set ACPI config table");
-                continue;
-            }
-
-            if let Some(smbios) = smbios_config_table(cfg) {
-                boot_info.set_smbios(smbios);
-                info!("Did set SMBIOS config table");
-                continue;
-            }
-        }
-    });
-
-    // if let Ok(fb) = frame_buffer(GRAPHICS_WIDTH, GRAPHICS_HEIGHT) {
-    //     boot_info.frame_buffer = Some(fb);
-    // } else {
+    // let Ok(framebuffer) = frame_buffer(GRAPHICS_WIDTH, GRAPHICS_HEIGHT) else {
     //     error!("Failed to setup graphics mode");
-    // }
-    //
-    _ = memory_map();
+    //     return Status::ABORTED;
+    // };
+
+    let Ok(memory_map) = get_memory_map() else {
+        error!("Failed to make memory map");
+        return Status::ABORTED;
+    };
+
+    // let boot_info = BootInfo {
+    //     acpi: acpi.0,
+    //     smbios: smbios.0,
+    //     framebuffer,
+    //     memory_map,
+    // };
 
     info!("Press any key...");
     wait_for_key();
@@ -63,7 +61,39 @@ fn main() -> Status {
     Status::SUCCESS
 }
 
-fn memory_map() -> uefi::Result<MemoryMapInfo> {
+struct ACPITable(ConfigTable);
+struct SMBIOSTable(ConfigTable);
+
+fn get_rsdp() -> uefi::Result<(ACPITable, SMBIOSTable)> {
+    let mut acpi_table: Option<ConfigTable> = None;
+    let mut smbios_table: Option<ConfigTable> = None;
+
+    uefi::system::with_config_table(|entry| {
+        for cfg in entry {
+            if let Some(acpi) = acpi_config_table(cfg) {
+                if is_newer_table(&acpi, &acpi_table) {
+                    acpi_table = Some(acpi);
+                }
+                continue;
+            }
+
+            if let Some(smbios) = smbios_config_table(cfg) {
+                if is_newer_table(&smbios, &smbios_table) {
+                    smbios_table = Some(smbios);
+                }
+                continue;
+            }
+        }
+    });
+
+    let (Some(acpi), Some(smbios)) = (acpi_table, smbios_table) else {
+        return Err(uefi::Status::NOT_FOUND.into());
+    };
+
+    Ok((ACPITable(acpi), SMBIOSTable(smbios)))
+}
+
+fn get_memory_map() -> uefi::Result<MemoryMapInfo> {
     let memory_map_owned = uefi::boot::memory_map(MemoryType::LOADER_DATA)?;
 
     // reserve extra 5 entries for the memory map header
@@ -166,6 +196,13 @@ fn smbios_config_table(entry: &ConfigTableEntry) -> Option<ConfigTable> {
     };
     let smbios = ConfigTable { address, version };
     Some(smbios)
+}
+
+fn is_newer_table(candidate: &ConfigTable, other: &Option<ConfigTable>) -> bool {
+    let Some(other) = other else {
+        return true;
+    };
+    candidate.version > other.version
 }
 
 fn wait_for_key() {
