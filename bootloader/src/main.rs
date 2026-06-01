@@ -11,8 +11,6 @@ use uefi::{
     table::cfg::ConfigTableEntry,
 };
 
-mod config_table_holder;
-
 // TODO: load from config file
 const GRAPHICS_WIDTH: usize = 1920;
 const GRAPHICS_HEIGHT: usize = 1080;
@@ -47,13 +45,10 @@ fn main() -> Status {
                 info!("Did set SMBIOS config table");
                 continue;
             }
-
-            // let holder = ConfigTableEntryHolder(cfg);
-            // info!("Skipped table for {}", holder);
         }
     });
 
-    if let Ok(fb) = frame_buffer(GRAPHICS_WIDTH, GRAPHICS_WIDTH) {
+    if let Ok(fb) = frame_buffer(GRAPHICS_WIDTH, GRAPHICS_HEIGHT) {
         boot_info.frame_buffer = Some(fb);
     } else {
         error!("Failed to setup graphics mode");
@@ -89,8 +84,6 @@ fn frame_buffer(target_width: usize, target_height: usize) -> uefi::Result<Frame
     };
 
     protocol.set_mode(&mode)?;
-
-    // TODO: provide pixel format
 
     let (width, height) = mode.info().resolution();
     let stride = mode.info().stride();
