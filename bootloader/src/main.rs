@@ -3,12 +3,19 @@
 use core::hint::black_box;
 
 use bootinfo::{MemoryMapInfo, *};
-use log::{error, info};
+use log::{debug, error, info};
 use uefi::{
     boot::MemoryType,
     mem::memory_map::MemoryMap,
     prelude::*,
-    proto::console::gop::{GraphicsOutput, PixelFormat},
+    proto::{
+        console::gop::{GraphicsOutput, PixelFormat},
+        loaded_image::LoadedImage,
+        media::{
+            file::{File, FileAttribute, FileMode},
+            fs::SimpleFileSystem,
+        },
+    },
     table::cfg::ConfigTableEntry,
 };
 
@@ -30,32 +37,58 @@ fn main() -> Status {
         info!("Failed to disable watchdog timer: {:?}", e);
     }
 
+    let Ok(_) = load_kernel() else {
+        error!("Failed to load kernel");
+        return Status::LOAD_ERROR;
+    };
+    debug!("Kernel loaded");
+
     let Ok((acpi, smbios)) = get_rsdp() else {
         error!("Failed to fetch APIC/SMBIOS tables");
         return Status::ABORTED;
     };
+    debug!("acpi/smbios tables loaded");
 
-    let Ok(framebuffer) = frame_buffer(GRAPHICS_WIDTH, GRAPHICS_HEIGHT) else {
-        error!("Failed to setup graphics mode");
-        return Status::ABORTED;
-    };
+    // let Ok(framebuffer) = frame_buffer(GRAPHICS_WIDTH, GRAPHICS_HEIGHT) else {
+    //     error!("Failed to setup graphics mode");
+    //     return Status::ABORTED;
+    // };
+    // debug!("framebuffer configured");
 
     let Ok(memory_map) = get_memory_map() else {
         error!("Failed to make memory map");
         return Status::ABORTED;
     };
+    debug!("memory map loaded");
 
-    let boot_info = BootInfo {
-        acpi: acpi.0,
-        smbios: smbios.0,
-        framebuffer,
-        memory_map,
-    };
+    // let boot_info = BootInfo {
+    //     acpi: acpi.0,
+    //     smbios: smbios.0,
+    //     framebuffer,
+    //     memory_map,
+    // };
 
     info!("Press any key...");
     wait_for_key();
 
     Status::SUCCESS
+}
+
+fn load_kernel() -> uefi::Result<()> {
+    let loaded_image = boot::open_protocol_exclusive::<LoadedImage>(boot::image_handle())?;
+
+    let Some(device_handle) = loaded_image.device() else {
+        return Err(uefi::Status::DEVICE_ERROR.into());
+    };
+
+    let mut sfs = boot::open_protocol_exclusive::<SimpleFileSystem>(device_handle)?;
+    let mut dir = sfs.open_volume()?;
+
+    let filename = cstr16!("\\kernel.elf");
+    let info = dir.open(filename, FileMode::Read, FileAttribute::empty())?;
+    info!("Kernel file info: {:?}", info);
+
+    Ok(())
 }
 
 struct ACPITable(ConfigTable);

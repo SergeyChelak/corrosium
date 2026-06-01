@@ -39,5 +39,5 @@ clean-all: clean
 	$(MAKE) -C ../kernel clean
 
 clean-kernel: clean
-    rm -f $(KERNEL)
+	rm -f $(KERNEL)
 	$(MAKE) -C ../kernel clean
