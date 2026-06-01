@@ -6,7 +6,7 @@ use bootinfo::{MemoryMapInfo, *};
 use log::{error, info};
 use uefi::{
     boot::{MemoryType, ScopedProtocol},
-    mem::memory_map::{self, MemoryMap},
+    mem::memory_map::MemoryMap,
     prelude::*,
     proto::console::gop::{GraphicsOutput, PixelFormat},
     table::cfg::ConfigTableEntry,
@@ -77,19 +77,19 @@ fn memory_map() -> uefi::Result<MemoryMapInfo> {
         unsafe { core::slice::from_raw_parts_mut::<MemoryMapEntry>(memory_map_ptr, count) };
 
     for (entry, descriptor) in memory_map_slice.iter_mut().zip(memory_map_owned.entries()) {
-        // entry.att = descriptor.att as bootinfo::MemoryAttribute;
-        // entry.ty = descriptor.ty as bootinfo::MemoryType;
+        entry.att = descriptor.att.bits();
+        entry.ty = descriptor.ty.0;
         entry.phys_start = descriptor.phys_start;
         entry.virt_start = descriptor.virt_start;
         entry.page_count = descriptor.page_count;
     }
 
-    let memory_map = bootinfo::MemoryMapInfo {
+    let memory_map_info = bootinfo::MemoryMapInfo {
         entries: memory_map_ptr,
         count,
     };
 
-    Ok(memory_map)
+    Ok(memory_map_info)
 }
 
 fn frame_buffer(target_width: usize, target_height: usize) -> uefi::Result<FrameBuffer> {
