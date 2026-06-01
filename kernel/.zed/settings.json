@@ -1,0 +1,23 @@
+{
+  "lsp": {
+    "rust-analyzer": {
+      "initialization_options": {
+        "cargo": {
+          "target": "x86_64-unknown-none",
+          "allTargets": false,
+        },
+        "check": {
+          "target": "x86_64-unknown-none",
+          "allTargets": false,
+          "overrideCommand": [
+            "cargo",
+            "check",
+            "--target",
+            "x86_64-unknown-none",
+            "--message-format=json",
+          ],
+        },
+      },
+    },
+  },
+}
