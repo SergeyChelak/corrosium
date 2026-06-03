@@ -3,7 +3,7 @@
 
 use bootinfo::*;
 use log::{debug, error, info};
-use uefi::{ prelude::*};
+use uefi::prelude::*;
 
 mod rsdp;
 use rsdp::*;

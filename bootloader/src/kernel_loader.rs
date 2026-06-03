@@ -105,21 +105,21 @@ fn load_segment(
         return Ok(());
     }
 
-    let result = boot::allocate_pages(
+    boot::allocate_pages(
         boot::AllocateType::Address(page_start),
         MemoryType::LOADER_DATA,
         num_pages as usize,
-    );
-
-    if let Err(e) = result {
-        log::warn!(
+    )
+    .map_err(|e| {
+        error!(
             "Failed to allocate {} pages at {:#X} ({:?})",
             num_pages,
             page_start,
             e.status()
         );
-        wait_for_key();
-    }
+        e.status()
+    })?;
+    wait_for_key();
 
     // Copy data
     let src = &buffer[p.p_offset as usize..(p.p_offset + p.p_filesz) as usize];

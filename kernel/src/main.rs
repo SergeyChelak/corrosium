@@ -1,13 +1,17 @@
 #![no_std]
 #![no_main]
 
+use core::arch::asm;
+
 use bootinfo::*;
 
 #[unsafe(no_mangle)]
 pub extern "sysv64" fn _start(boot_info: &BootInfo) -> ! {
     draw_square(&boot_info.framebuffer);
     loop {
-        // no op
+        unsafe {
+            asm!("cli", "hlt");
+        }
     }
 }
 
