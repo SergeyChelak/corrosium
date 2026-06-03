@@ -1,27 +1,24 @@
 #![no_std]
 #![no_main]
-use core::hint::black_box;
 
-use bootinfo::{MemoryMapInfo, *};
+use bootinfo::*;
 use log::{debug, error, info};
-use uefi::{
-    boot::MemoryType,
-    mem::memory_map::MemoryMap,
-    prelude::*,
-    proto::{
-        console::gop::{GraphicsOutput, PixelFormat},
-        loaded_image::LoadedImage,
-        media::{
-            file::{File, FileAttribute, FileInfo, FileMode},
-            fs::SimpleFileSystem,
-        },
-    },
-    table::cfg::ConfigTableEntry,
-};
+use uefi::{ prelude::*};
 
-// TODO: load from config file
-const GRAPHICS_WIDTH: usize = 1920;
-const GRAPHICS_HEIGHT: usize = 1080;
+mod rsdp;
+use rsdp::*;
+
+mod utils;
+use utils::*;
+
+mod gop;
+use gop::*;
+
+mod memory;
+use memory::*;
+
+mod kernel_loader;
+use kernel_loader::*;
 
 #[entry]
 fn main() -> Status {
@@ -37,222 +34,45 @@ fn main() -> Status {
         info!("Failed to disable watchdog timer: {:?}", e);
     }
 
-    let Ok(_) = load_kernel() else {
+    let Ok(kernel_info) = load_kernel() else {
         error!("Failed to load kernel");
         return Status::LOAD_ERROR;
     };
-    debug!("Kernel loaded");
+    debug!(
+        "Kernel loaded. Entry point: {:#X}, Range: {:#X} - {:#X}",
+        kernel_info.entry_point, kernel_info.start_addr, kernel_info.end_addr
+    );
 
-    let Ok((acpi, smbios)) = get_rsdp() else {
+    let Ok(rsdp) = RSDP::setup() else {
         error!("Failed to fetch APIC/SMBIOS tables");
         return Status::ABORTED;
     };
     debug!("acpi/smbios tables loaded");
-
-    // let Ok(framebuffer) = frame_buffer(GRAPHICS_WIDTH, GRAPHICS_HEIGHT) else {
-    //     error!("Failed to setup graphics mode");
-    //     return Status::ABORTED;
-    // };
-    // debug!("framebuffer configured");
-
-    let Ok(memory_map) = get_memory_map() else {
-        error!("Failed to make memory map");
-        return Status::ABORTED;
-    };
-    debug!("memory map loaded");
-
-    // let boot_info = BootInfo {
-    //     acpi: acpi.0,
-    //     smbios: smbios.0,
-    //     framebuffer,
-    //     memory_map,
-    // };
-
-    info!("Press any key...");
     wait_for_key();
 
-    Status::SUCCESS
-}
-
-fn load_kernel() -> uefi::Result<()> {
-    let loaded_image = boot::open_protocol_exclusive::<LoadedImage>(boot::image_handle())?;
-
-    let Some(device_handle) = loaded_image.device() else {
-        return Err(uefi::Status::DEVICE_ERROR.into());
+    let Ok(framebuffer) = GOP::default().framebuffer_info() else {
+        error!("Failed to setup graphics mode");
+        return Status::ABORTED;
     };
 
-    let mut sfs = boot::open_protocol_exclusive::<SimpleFileSystem>(device_handle)?;
-    let mut dir = sfs.open_volume()?;
-
-    let filename = cstr16!("\\kernel.elf");
-    let file_handle = dir.open(filename, FileMode::Read, FileAttribute::empty())?;
-
-    let mut file = match file_handle.into_regular_file() {
-        Some(f) => f,
-        None => return Err(uefi::Status::NOT_FOUND.into()),
+    let Ok(memory_map) = get_memory_map_and_exit_boot_services() else {
+        error!("Failed to exit boot services and get memory map");
+        return Status::ABORTED;
     };
 
-    // 2. Get the file size
-    // 128 bytes is generally more than enough for a standard FileInfo struct
-    let mut info_buf = [0u8; 128];
-    let info = file
-        .get_info::<FileInfo>(&mut info_buf)
-        .map_err(|_| uefi::Status::BUFFER_TOO_SMALL)?;
-    let file_size = info.file_size() as usize;
-
-    info!("Kernel size: {file_size}");
-
-    Ok(())
-}
-
-struct ACPITable(ConfigTable);
-struct SMBIOSTable(ConfigTable);
-
-fn get_rsdp() -> uefi::Result<(ACPITable, SMBIOSTable)> {
-    let mut acpi_table: Option<ConfigTable> = None;
-    let mut smbios_table: Option<ConfigTable> = None;
-
-    uefi::system::with_config_table(|entry| {
-        for cfg in entry {
-            if let Some(acpi) = acpi_config_table(cfg) {
-                if is_newer_table(&acpi, &acpi_table) {
-                    acpi_table = Some(acpi);
-                }
-                continue;
-            }
-
-            if let Some(smbios) = smbios_config_table(cfg) {
-                if is_newer_table(&smbios, &smbios_table) {
-                    smbios_table = Some(smbios);
-                }
-                continue;
-            }
-        }
-    });
-
-    let (Some(acpi), Some(smbios)) = (acpi_table, smbios_table) else {
-        return Err(uefi::Status::NOT_FOUND.into());
+    let boot_info = BootInfo {
+        acpi: rsdp.acpi,
+        smbios: rsdp.smbios,
+        framebuffer,
+        memory_map,
+        kernel_range: KernelRange {
+            start_addr: kernel_info.start_addr,
+            end_addr: kernel_info.end_addr,
+        },
     };
 
-    Ok((ACPITable(acpi), SMBIOSTable(smbios)))
-}
+    let entry_point: extern "sysv64" fn(&BootInfo) -> ! =
+        unsafe { core::mem::transmute(kernel_info.entry_point as usize) };
 
-fn get_memory_map() -> uefi::Result<MemoryMapInfo> {
-    let memory_map_owned = uefi::boot::memory_map(MemoryType::LOADER_DATA)?;
-
-    // reserve extra 5 entries for the memory map header
-    let count = 5 + memory_map_owned.entries().count();
-    let size = count * core::mem::size_of::<MemoryMapEntry>();
-
-    let buffer = boot::allocate_pool(MemoryType::LOADER_DATA, size)?;
-
-    let memory_map_ptr = buffer.as_ptr() as *mut MemoryMapEntry;
-    let memory_map_slice =
-        unsafe { core::slice::from_raw_parts_mut::<MemoryMapEntry>(memory_map_ptr, count) };
-
-    for (entry, descriptor) in memory_map_slice.iter_mut().zip(memory_map_owned.entries()) {
-        entry.att = descriptor.att.bits();
-        entry.ty = descriptor.ty.0;
-        entry.phys_start = descriptor.phys_start;
-        entry.virt_start = descriptor.virt_start;
-        entry.page_count = descriptor.page_count;
-    }
-
-    let memory_map_info = bootinfo::MemoryMapInfo {
-        entries: memory_map_ptr,
-        count,
-    };
-
-    Ok(memory_map_info)
-}
-
-fn frame_buffer(target_width: usize, target_height: usize) -> uefi::Result<FrameBuffer> {
-    let handle = uefi::boot::get_handle_for_protocol::<GraphicsOutput>()?;
-    let mut protocol = boot::open_protocol_exclusive::<GraphicsOutput>(handle)?;
-
-    let Some(mode) = protocol
-        .modes()
-        .into_iter()
-        .filter(|mode| {
-            matches!(
-                mode.info().pixel_format(),
-                PixelFormat::Rgb | PixelFormat::Bgr
-            )
-        })
-        .map(|mode| {
-            let (width, height) = mode.info().resolution();
-            let sqr_diff = width.abs_diff(target_width) + height.abs_diff(target_height);
-            (mode, sqr_diff)
-        })
-        .min_by_key(|(_, sqr_diff)| *sqr_diff)
-        .map(|(mode, _)| mode)
-    else {
-        return Err(uefi::Status::NOT_FOUND.into());
-    };
-
-    protocol.set_mode(&mode)?;
-
-    let (width, height) = mode.info().resolution();
-    let stride = mode.info().stride();
-    let mut fb = protocol.frame_buffer();
-    let base_address = fb.as_mut_ptr() as *mut core::ffi::c_void;
-    let size = fb.size();
-    let pixel_format = match mode.info().pixel_format() {
-        PixelFormat::Rgb => bootinfo::PixelFormat::RGB,
-        PixelFormat::Bgr => bootinfo::PixelFormat::BGR,
-        _ => return Err(uefi::Status::UNSUPPORTED.into()),
-    };
-
-    let frame_buffer = FrameBuffer {
-        width,
-        height,
-        stride,
-        base_address,
-        size,
-        pixel_format,
-    };
-    Ok(frame_buffer)
-}
-
-fn acpi_config_table(entry: &ConfigTableEntry) -> Option<ConfigTable> {
-    let Some((address, version)) = (match entry.guid {
-        ConfigTableEntry::ACPI2_GUID => Some((entry.address, 2)),
-        ConfigTableEntry::ACPI_GUID => Some((entry.address, 1)),
-        _ => None,
-    }) else {
-        return None;
-    };
-    let acpi = ConfigTable { address, version };
-    Some(acpi)
-}
-
-fn smbios_config_table(entry: &ConfigTableEntry) -> Option<ConfigTable> {
-    let Some((address, version)) = (match entry.guid {
-        ConfigTableEntry::SMBIOS3_GUID => Some((entry.address, 3)),
-        ConfigTableEntry::SMBIOS_GUID => Some((entry.address, 1)),
-        _ => None,
-    }) else {
-        return None;
-    };
-    let smbios = ConfigTable { address, version };
-    Some(smbios)
-}
-
-fn is_newer_table(candidate: &ConfigTable, other: &Option<ConfigTable>) -> bool {
-    let Some(other) = other else {
-        return true;
-    };
-    candidate.version > other.version
-}
-
-fn wait_for_key() {
-    uefi::system::with_stdin(|stdin| {
-        let Ok(key_event) = stdin.wait_for_key_event() else {
-            return;
-        };
-        _ = uefi::boot::wait_for_event(&mut [key_event]);
-        while let Ok(Some(key)) = stdin.read_key() {
-            black_box(key);
-        }
-    });
+    entry_point(&boot_info);
 }

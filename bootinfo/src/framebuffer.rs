@@ -2,7 +2,7 @@ use core::ffi::c_void;
 
 /// Represents the graphics framebuffer memory where pixels are drawn to the screen.
 #[repr(C)]
-pub struct FrameBuffer {
+pub struct FrameBufferInfo {
     /// The visible width of the screen in pixels.
     pub width: usize,
     /// The visible height of the screen in pixels.
