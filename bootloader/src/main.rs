@@ -1,8 +1,8 @@
 #![no_std]
 #![no_main]
 
-use bootinfo::*;
-use log::{debug, error, info};
+use bootinfo::{address::VirtualAddress, *};
+use log::{debug, error, info, warn};
 use uefi::prelude::*;
 
 mod rsdp;
@@ -20,8 +20,27 @@ use memory::*;
 mod kernel_loader;
 use kernel_loader::*;
 
+mod memory_manager;
+use memory_manager::*;
+
 #[entry]
 fn main() -> Status {
+    let Ok(_) = uefi::helpers::init() else {
+        return Status::NOT_READY;
+    };
+
+    info!("Corrosium Bootloader started");
+
+    // Disable the UEFI watchdog timer by setting 0 timeout
+    if let Err(e) = uefi::boot::set_watchdog_timer(0, 0x10000, None) {
+        warn!("Failed to disable watchdog timer: {:?}", e);
+    }
+
+    wait_for_key();
+    Status::SUCCESS
+}
+/*
+fn _main() -> Status {
     let Ok(_) = uefi::helpers::init() else {
         return Status::NOT_READY;
     };
@@ -34,45 +53,64 @@ fn main() -> Status {
         info!("Failed to disable watchdog timer: {:?}", e);
     }
 
-    let Ok(kernel_info) = load_kernel() else {
+    let mut mem_mgr = match KernelSpaceMemoryManager::new() {
+        Ok(m) => m,
+        Err(_) => {
+            error!("Failed to create memory manager");
+            return Status::LOAD_ERROR;
+        }
+    };
+
+    // let higher_half_direct_mapping: VirtualAddr = VirtualAddr::new(0xFFFF888000000000);
+
+    let filename = cstr16!("\\kernel.elf");
+    let mut kernel_loader = KernelLoader::new(filename, &mut mem_mgr);
+    let Ok(kernel_info) = kernel_loader.load() else {
         error!("Failed to load kernel");
         return Status::LOAD_ERROR;
     };
     debug!(
         "Kernel loaded. Entry point: {:#X}, Range: {:#X} - {:#X}",
-        kernel_info.entry_point, kernel_info.start_addr, kernel_info.end_addr
+        kernel_info.entry_point.as_u64(),
+        kernel_info.start_addr.as_u64(),
+        kernel_info.end_addr.as_u64()
     );
 
-    let Ok(rsdp) = RSDP::setup() else {
-        error!("Failed to fetch APIC/SMBIOS tables");
-        return Status::ABORTED;
-    };
-    debug!("acpi/smbios tables loaded");
     wait_for_key();
+    todo!()
 
-    let Ok(framebuffer) = GOP::default().framebuffer_info() else {
-        error!("Failed to setup graphics mode");
-        return Status::ABORTED;
-    };
+    // let Ok(rsdp) = RSDP::setup() else {
+    //     error!("Failed to fetch APIC/SMBIOS tables");
+    //     return Status::ABORTED;
+    // };
+    // debug!("acpi/smbios tables loaded");
+    // // wait_for_key();
 
-    let Ok(memory_map) = get_memory_map_and_exit_boot_services() else {
-        error!("Failed to exit boot services and get memory map");
-        return Status::ABORTED;
-    };
+    // let Ok(framebuffer) = GOP::default().framebuffer_info() else {
+    //     error!("Failed to setup graphics mode");
+    //     return Status::ABORTED;
+    // };
 
-    let boot_info = BootInfo {
-        acpi: rsdp.acpi,
-        smbios: rsdp.smbios,
-        framebuffer,
-        memory_map,
-        kernel_range: KernelRange {
-            start_addr: kernel_info.start_addr,
-            end_addr: kernel_info.end_addr,
-        },
-    };
+    // let Ok(memory_map) = get_memory_map_and_exit_boot_services() else {
+    //     error!("Failed to exit boot services and get memory map");
+    //     return Status::ABORTED;
+    // };
 
-    let entry_point: extern "sysv64" fn(&BootInfo) -> ! =
-        unsafe { core::mem::transmute(kernel_info.entry_point as usize) };
+    // let boot_info = BootInfo {
+    //     acpi: rsdp.acpi,
+    //     smbios: rsdp.smbios,
+    //     framebuffer,
+    //     memory_map,
+    //     kernel_range: KernelRange {
+    //         start_addr: kernel_info.start_addr,
+    //         end_addr: kernel_info.end_addr,
+    //     },
+    //     higher_half_direct_mapping,
+    // };
 
-    entry_point(&boot_info);
+    // let entry_point: extern "sysv64" fn(&BootInfo) -> ! =
+    //     unsafe { core::mem::transmute(kernel_info.entry_point.as_u64() as usize) };
+
+    // entry_point(&boot_info);
 }
+*/

@@ -6,15 +6,15 @@ use core::arch::asm;
 use bootinfo::*;
 
 #[unsafe(no_mangle)]
-pub extern "sysv64" fn _start(boot_info: &BootInfo) -> ! {
-    draw_square(&boot_info.framebuffer);
+pub extern "sysv64" fn _start(info: &BootInfo) -> ! {
+    // draw_square(&boot_info.framebuffer);
     loop {
         unsafe {
             asm!("cli", "hlt");
         }
     }
 }
-
+/*
 fn draw_square(framebuffer: &FrameBufferInfo) {
     // Lets draw a 2x2 square on the screen
     let top = 100 * framebuffer.stride;
@@ -46,6 +46,7 @@ fn draw_square(framebuffer: &FrameBufferInfo) {
         }
     };
 }
+ */
 
 #[panic_handler]
 pub fn panic(_info: &core::panic::PanicInfo) -> ! {
